@@ -1,108 +1,98 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pixel Saturation - Video Decay</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0a0a0a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:20px;min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:20px}
-.header{text-align:center}
-.header h1{font-size:28px;font-weight:300;letter-spacing:2px;margin-bottom:8px}
-.header p{font-size:13px;color:#888;max-width:520px}
-.controls{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:center;background:#1a1a1a;padding:20px;border-radius:8px;border:1px solid #2a2a2a;width:100%;max-width:900px}
-.control-group{display:flex;gap:8px;align-items:center}
-label{font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:#aaa}
-input[type=file],input[type=color],input[type=number],button{font-family:inherit;font-size:12px;padding:10px 16px;border:1px solid #3a3a3a;border-radius:4px;background:#0a0a0a;color:#fff;cursor:pointer;transition:all .2s}
-input[type=number]{width:70px;cursor:text;padding:10px 8px}
-input[type=file]::file-selector-button{background:#2a2a2a;border:none;padding:8px 12px;margin-right:8px;border-radius:3px;color:#fff;cursor:pointer}
-input[type=color]{width:50px;height:40px;padding:2px}
-button{background:#1a1a1a;border:1px solid #ff4444;color:#ff4444;padding:10px 24px}
-button:hover:not(:disabled){background:#ff4444;color:#0a0a0a}
-button:disabled{opacity:.5;cursor:not-allowed}
-.canvas-container{width:100%;max-width:900px;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative;min-height:300px}
-canvas{max-width:100%;height:auto;display:block}
-.placeholder{color:#555;text-align:center;font-size:14px;position:absolute}
-.player-bar{width:100%;max-width:900px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
-.timeline{display:flex;align-items:center;gap:8px;width:100%}
-.timeline input[type=range]{flex:1;height:4px;-webkit-appearance:none;appearance:none;background:#2a2a2a;border:none;border-radius:2px;outline:none;cursor:pointer;padding:0}
-.timeline input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;background:#ff4444;border-radius:50%;cursor:pointer;transition:background .2s}
-.timeline input[type=range]::-moz-range-thumb{width:12px;height:12px;background:#ff4444;border:none;border-radius:50%;cursor:pointer;transition:background .2s}
-.timeline input[type=range]::-webkit-slider-thumb:hover{background:#ff6666}
-.timeline input[type=range]::-moz-range-thumb:hover{background:#ff6666}
-.time-display{font-size:11px;color:#888;font-family:monospace;min-width:100px;text-align:center}
-.player-controls{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
-.player-btn{background:0;border:1px solid #3a3a3a;color:#ff4444;padding:8px 12px;cursor:pointer;font-size:12px;border-radius:4px;transition:all .2s}
-.player-btn:hover{border-color:#ff4444;background:#ff4444;color:#0a0a0a}
-.player-btn:disabled{opacity:.3;cursor:not-allowed}
-.info{display:flex;gap:30px;font-size:12px;color:#888;justify-content:center;flex-wrap:wrap}
-.stat{display:flex;flex-direction:column;gap:4px}
-.stat-value{font-size:18px;color:#fff;font-weight:500}
-.stat-label{text-transform:uppercase;letter-spacing:.5px;color:#666}
-.progress-bar{width:100%;max-width:900px;height:6px;background:#1a1a1a;border-radius:3px;overflow:hidden;border:1px solid #2a2a2a}
-.progress-fill{height:100%;background:#ff4444;width:0%}
-.notice{font-size:11px;color:#666;max-width:640px;text-align:center;line-height:1.5}
-input[type=range]::-webkit-slider-runnable-track{background:#2a2a2a;height:4px;border-radius:2px}
-input[type=range]::-moz-range-track{background:#2a2a2a;height:4px;border-radius:2px;border:0}
+:root{color-scheme:dark;--bg:#111311;--panel:#1b1e1a;--line:#353a32;--text:#f1f0e8;--muted:#9b9f94;--accent:#d2f36b;--hot:#ff654f}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;padding:34px clamp(16px,4vw,56px) 48px;background:radial-gradient(ellipse at 78% 0%,#293025 0,transparent 40%),var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;gap:18px}
+.app{width:min(100%,1080px);display:flex;flex-direction:column;gap:18px}
+.header{display:flex;justify-content:space-between;align-items:end;gap:24px;padding:10px 0 8px;border-bottom:1px solid var(--line)}
+.brand{display:flex;flex-direction:column;gap:8px}.eyebrow,.section-title,.stat-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted)}
+.header h1{font-family:Georgia,'Times New Roman',serif;font-size:clamp(30px,5vw,48px);line-height:1;margin:0;font-weight:400}.header p{max-width:340px;margin:0;color:var(--muted);font-size:13px;line-height:1.55}
+.workspace{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:14px;align-items:start}
+.main-column,.side-column{display:flex;flex-direction:column;gap:12px;min-width:0}
+.canvas-container{width:100%;aspect-ratio:16/9;min-height:240px;background:#080a08;border:1px solid var(--line);overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative}
+canvas{max-width:100%;max-height:100%;width:auto;height:auto;display:block}.placeholder{color:var(--muted);text-align:center;font-size:13px;position:absolute;pointer-events:none}
+.player-bar,.panel{background:var(--panel);border:1px solid var(--line);padding:14px}.player-bar{display:flex;flex-direction:column;gap:12px}.timeline{display:flex;align-items:center;gap:12px;width:100%}.timeline input[type=range]{flex:1}
+input[type=range]{height:4px;appearance:none;background:#454b40;border:none;border-radius:3px;outline:none;cursor:pointer;padding:0}input[type=range]::-webkit-slider-thumb{appearance:none;width:13px;height:13px;background:var(--accent);border-radius:50%;cursor:pointer}input[type=range]::-moz-range-thumb{width:13px;height:13px;background:var(--accent);border:0;border-radius:50%;cursor:pointer}
+.time-display{font-size:11px;color:var(--muted);font-family:ui-monospace,monospace;min-width:94px}.player-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.player-btn,button,.file-picker{font:inherit;font-size:12px;border:1px solid var(--line);background:#151714;color:var(--text);padding:9px 12px;cursor:pointer;transition:background .18s,border-color .18s,color .18s}.player-btn:hover:not(:disabled),button:hover:not(:disabled),.file-picker:hover{border-color:var(--accent);color:var(--accent)}.player-btn:disabled,button:disabled{opacity:.42;cursor:not-allowed}.player-btn.primary{background:var(--accent);color:#151710;border-color:var(--accent);font-weight:700}.player-btn.primary:hover:not(:disabled){background:#e2ff94;color:#151710}
+.speed-control,.volume-control{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px}.volume-control input{width:76px}.player-controls select{background:#151714;border:1px solid var(--line);color:var(--text);padding:7px 8px;font-size:11px}.control-panel{display:flex;flex-direction:column;gap:16px}.section-title{margin:0 0 2px}.control-group{display:flex;flex-direction:column;gap:7px}label{font-size:11px;font-weight:600;color:#c5c8bd}.inline-controls{display:flex;align-items:center;gap:9px}.inline-controls label{display:flex;align-items:center;gap:7px;font-weight:400;color:var(--muted)}
+input[type=file]{display:none}input[type=color],input[type=number]{font:inherit;color:var(--text);background:#121411;border:1px solid var(--line);padding:8px}input[type=number]{width:100%;height:36px}input[type=color]{width:40px;height:34px;padding:2px;cursor:pointer}input[type=checkbox]{accent-color:var(--accent)}.file-picker{display:block;text-align:center;color:var(--accent);border-color:#67734d}
+.color-row{display:flex;align-items:center;gap:9px}.color-row label{color:var(--muted);font-weight:400}.export-btn{width:100%;background:var(--hot);border-color:var(--hot);color:#17110f;font-weight:700}.export-btn:hover:not(:disabled){background:#ff8877;border-color:#ff8877;color:#17110f}
+.export-status{min-height:16px;color:var(--muted);font-size:11px;line-height:1.4}.progress-bar{height:4px;background:#343a30;overflow:hidden}.progress-fill{height:100%;background:var(--accent);width:0%;transition:width .08s linear}.info{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{padding:12px;background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;gap:5px}.stat-value{font-size:20px;color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}.notice{font-size:11px;color:var(--muted);line-height:1.5}.format-note{padding-top:12px;border-top:1px solid var(--line)}
+@media(max-width:800px){.workspace{grid-template-columns:1fr}.side-column{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.control-panel{grid-column:1/-1}.header{align-items:start;flex-direction:column}.header p{max-width:560px}}
+@media(max-width:520px){body{padding:20px 14px 32px}.side-column{display:flex}.canvas-container{min-height:190px}.player-controls{gap:6px}.player-btn{padding:8px 9px}.info{gap:6px}.stat{padding:10px 8px}.stat-value{font-size:17px}}
 </style>
 </head>
 <body>
-<div class="header">
-  <h1>PIXEL SATURATION</h1>
-  <p>Importa um vídeo. Cada pixel pode mudar N vezes; na última mudança ele vira a cor escolhida, para sempre.</p>
-</div>
+<main class="app">
+<header class="header">
+  <div class="brand"><span class="eyebrow">A browser-based video effect</span><h1>Pixel Saturation</h1></div>
+  <p>Track pixel changes over time. Once a pixel reaches its limit, it locks into color for the rest of the video.</p>
+</header>
 
-<div class="controls">
-  <input type="file" id="videoInput" accept="video/*">
-  <div class="control-group"><label for="colorInput">Cor 1:</label><input type="color" id="colorInput" value="#ff0000"></div>
-  <div class="control-group"><label for="color2Input">Cor 2:</label><input type="color" id="color2Input" value="#00ff00"><label style="margin-left:8px"><input type="checkbox" id="gradientToggle"> Gradiente temporal</label></div>
-  <div class="control-group"><label style="margin-left:8px"><input type="checkbox" id="curveToggle"> Curva de cor (automática)</label></div>
-  <div class="control-group"><label for="mutationInput">Iterações:</label><input type="number" id="mutationInput" value="50" min="1" max="1000"></div>
-  <div class="control-group"><label for="sensInput">Sensibilidade:</label><input type="number" id="sensInput" value="30" min="0" max="765"></div>
-  <button id="resetBtn" disabled>RESETAR</button>
-</div>
-
-<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-
+<div class="workspace">
+<section class="main-column" aria-label="Video preview and playback">
 <div class="canvas-container">
   <video id="videoElement" style="display:none" crossorigin="anonymous"></video>
   <canvas id="canvas"></canvas>
-  <div class="placeholder" id="placeholder">Importa um vídeo para começar</div>
+  <div class="placeholder" id="placeholder">Choose a video to start previewing</div>
 </div>
 
 <div class="player-bar">
   <div class="timeline">
     <span class="time-display"><span id="currentTime">00:00</span> / <span id="duration">00:00</span></span>
-    <input type="range" id="seekBar" min="0" max="100" value="0">
+    <input type="range" id="seekBar" min="0" max="100" value="0" aria-label="Seek video" disabled>
   </div>
   <div class="player-controls">
-    <button class="player-btn" id="playBtn" disabled>▶ PLAY</button>
-    <button class="player-btn" id="pauseBtn" disabled>⏸ PAUSE</button>
-    <button class="player-btn" id="stopBtn" disabled>⏹ STOP</button>
-    <div style="width:1px;height:20px;background:#2a2a2a"></div>
-    <label for="speedSelect" style="text-transform:uppercase;font-size:11px;color:#888">Velocidade:</label>
-    <select id="speedSelect" style="background:#0a0a0a;border:1px solid #3a3a3a;color:#fff;padding:6px 8px;border-radius:4px;font-size:11px;cursor:pointer" disabled>
+    <button class="player-btn primary" id="playBtn" disabled>Play</button>
+    <button class="player-btn" id="pauseBtn" disabled>Pause</button>
+    <button class="player-btn" id="stopBtn" disabled>Stop</button>
+    <div class="speed-control"><label for="speedSelect">Speed</label>
+    <select id="speedSelect" disabled>
       <option value="0.25">0.25x</option>
       <option value="0.5">0.5x</option>
       <option value="1" selected>1x</option>
       <option value="1.5">1.5x</option>
       <option value="2">2x</option>
-    </select>
-    <div style="width:1px;height:20px;background:#2a2a2a"></div>
-    <label for="volumeSlider" style="text-transform:uppercase;font-size:11px;color:#888">🔊</label>
-    <input type="range" id="volumeSlider" min="0" max="100" value="100" style="width:100px;height:4px;-webkit-appearance:none;appearance:none;background:#2a2a2a;border:none;border-radius:2px;outline:none;cursor:pointer;padding:0" disabled>
+    </select></div>
+    <div class="volume-control"><label for="volumeSlider">Volume</label><input type="range" id="volumeSlider" min="0" max="100" value="100" aria-label="Volume" disabled></div>
   </div>
 </div>
 
+<div class="progress-bar" aria-label="Processing progress"><div class="progress-fill" id="progressFill"></div></div>
 <div class="info">
-  <div class="stat"><div class="stat-value" id="frameCount">0</div><div class="stat-label">Frame</div></div>
-  <div class="stat"><div class="stat-value" id="pixelsCount">0</div><div class="stat-label">Pixels saturados</div></div>
-  <div class="stat"><div class="stat-value" id="pctCount">0%</div><div class="stat-label">Do quadro</div></div>
+  <div class="stat"><div class="stat-value" id="frameCount">0</div><div class="stat-label">Frames processed</div></div>
+  <div class="stat"><div class="stat-value" id="pixelsCount">0</div><div class="stat-label">Pixels locked</div></div>
+  <div class="stat"><div class="stat-value" id="pctCount">0%</div><div class="stat-label">Frame coverage</div></div>
 </div>
+</section>
 
-<div class="notice">
-  Sensibilidade = o quanto um pixel precisa mudar (soma da diferença R+G+B) para contar como uma mudança.
-  Vídeos comprimidos têm ruído; com 0, quase todo pixel "muda" a todo frame. Se o vermelho avança rápido demais, aumente.
+<aside class="side-column">
+  <label class="file-picker" for="videoInput">Choose video</label>
+  <input type="file" id="videoInput" accept="video/*,.mp4,.m4v,.webm,.ogv,.mov,.mkv,.avi">
+  <section class="panel control-panel" aria-label="Effect settings">
+    <h2 class="section-title">Effect settings</h2>
+    <div class="control-group"><span class="section-title">Lock color</span><div class="color-row"><input type="color" id="colorInput" value="#ff654f" aria-label="First lock color"><label for="colorInput">Primary</label><input type="color" id="color2Input" value="#d2f36b" aria-label="Second lock color"><label for="color2Input">End</label></div></div>
+    <div class="inline-controls"><label><input type="checkbox" id="gradientToggle"> Temporal gradient</label></div>
+    <div class="inline-controls"><label><input type="checkbox" id="curveToggle"> Auto color curve</label></div>
+    <div class="control-group"><label for="mutationInput">Changes before lock</label><input type="number" id="mutationInput" value="50" min="1" max="1000"></div>
+    <div class="control-group"><label for="sensInput">Change sensitivity</label><input type="number" id="sensInput" value="30" min="0" max="765"></div>
+    <button id="resetBtn" disabled>Reset effect</button>
+  </section>
+  <section class="panel">
+    <h2 class="section-title">Export</h2>
+    <button class="export-btn" id="exportBtn" disabled>Export processed video</button>
+    <p class="export-status" id="exportStatus" role="status">Load a video to enable export.</p>
+  </section>
+  <p class="notice">Sensitivity is the total RGB difference required to count as a pixel change. Compressed footage adds noise; raise sensitivity if pixels lock too quickly.</p>
+  <p class="notice format-note">Input formats depend on your browser's built-in decoder. MP4 (H.264), WebM (VP8/VP9), Ogg, MOV, MKV and AVI may work when supported by the browser. Export uses WebM or another format available to MediaRecorder.</p>
+</aside>
+</div>
+</main>
 </div>
 
 <script>
@@ -115,10 +105,12 @@ const placeholder=$('placeholder'), progressFill=$('progressFill');
 const playBtn=$('playBtn'), pauseBtn=$('pauseBtn'), stopBtn=$('stopBtn');
 const seekBar=$('seekBar'), speedSelect=$('speedSelect'), volumeSlider=$('volumeSlider');
 const currentTimeEl=$('currentTime'), durationEl=$('duration');
+const exportBtn=$('exportBtn'), exportStatus=$('exportStatus');
 
 let isRunning=false, pending=false, isUserSeeking=false;
 let counts=null, saturated=null, saturationTime=null, bufA=null, bufB=null, hasPrev=false;
 let saturatedTotal=0, frameCount=0;
+let mediaRecorder=null, exportChunks=[];
 
 function resetState(){
   const n=canvas.width*canvas.height;
@@ -143,7 +135,6 @@ videoInput.addEventListener('change', e=>{
   video.load();
   
   video.onloadedmetadata=()=>{
-    console.log('Vídeo carregado');
     canvas.width=video.videoWidth;
     canvas.height=video.videoHeight;
     placeholder.style.display='none';
@@ -153,20 +144,24 @@ videoInput.addEventListener('change', e=>{
     stopBtn.disabled=false;
     speedSelect.disabled=false;
     volumeSlider.disabled=false;
+    seekBar.disabled=false;
+    exportBtn.disabled=false;
     durationEl.textContent=formatTime(video.duration);
     resetState();
     progressFill.style.width='0%';
     seekBar.value=0;
+    exportStatus.textContent='Ready to process from the beginning.';
   };
   
   video.onerror=(e)=>{
-    console.error('Erro ao carregar vídeo:', e);
-    alert('Erro ao carregar o vídeo.');
+    console.error('Failed to load video:', e);
+    exportStatus.textContent='This video could not be decoded by your browser.';
   };
   
   video.onended=()=>{
     isRunning=false;
-    playBtn.textContent='▶ PLAY';
+    playBtn.textContent='Play';
+    if(mediaRecorder&&mediaRecorder.state!=='inactive') mediaRecorder.stop();
   };
   
   video.ontimeupdate=()=>{
@@ -178,22 +173,21 @@ videoInput.addEventListener('change', e=>{
 playBtn.addEventListener('click', ()=>{
   if(!video.src) return;
   isRunning=true;
-  playBtn.textContent='⏸ PLAYING';
+  playBtn.textContent='Playing';
   video.play().then(()=>{
-    console.log('Tocando, volume:', video.volume);
     schedule();
-  }).catch(e=>console.error('Erro ao tocar:', e));
+  }).catch(e=>{isRunning=false;playBtn.textContent='Play';exportStatus.textContent='Playback could not start.';});
 });
 
 pauseBtn.addEventListener('click', ()=>{
   isRunning=false;
-  playBtn.textContent='▶ PLAY';
+  playBtn.textContent='Play';
   video.pause();
 });
 
 stopBtn.addEventListener('click', ()=>{
   isRunning=false;
-  playBtn.textContent='▶ PLAY';
+  playBtn.textContent='Play';
   video.pause();
   video.currentTime=0;
   seekBar.value=0;
@@ -202,7 +196,7 @@ stopBtn.addEventListener('click', ()=>{
 
 resetBtn.addEventListener('click', ()=>{
   isRunning=false;
-  playBtn.textContent='▶ PLAY';
+  playBtn.textContent='Play';
   video.pause();
   video.currentTime=0;
   seekBar.value=0;
@@ -226,12 +220,80 @@ speedSelect.addEventListener('change', (e)=>{
 volumeSlider.addEventListener('input', (e)=>{
   const vol=parseFloat(e.target.value)/100;
   video.volume=vol;
-  console.log('Volume ajustado para:', vol);
 });
+
+exportBtn.addEventListener('click', startExport);
+
+function startExport(){
+  if(!video.src||!canvas.width) return;
+  if(!window.MediaRecorder||!canvas.captureStream){
+    exportStatus.textContent='Processed-video export is not supported in this browser. Try a recent version of Chrome, Edge, or Firefox.';
+    return;
+  }
+  const mimeTypes=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4'];
+  const mimeType=mimeTypes.find(type=>MediaRecorder.isTypeSupported(type));
+  if(!mimeType){
+    exportStatus.textContent='This browser cannot encode a supported video format.';
+    return;
+  }
+  const canvasStream=canvas.captureStream(30);
+  const tracks=[...canvasStream.getVideoTracks()];
+  const captureVideo=video.captureStream||video.mozCaptureStream;
+  if(captureVideo){
+    try{tracks.push(...captureVideo.call(video).getAudioTracks());}catch(error){console.warn('Audio capture is unavailable:',error);}
+  }
+  const outputStream=new MediaStream(tracks);
+  exportChunks=[];
+  try{mediaRecorder=new MediaRecorder(outputStream,{mimeType});}
+  catch(error){
+    exportStatus.textContent='The video recorder could not be started in this browser.';
+    tracks.forEach(track=>track.stop());
+    return;
+  }
+  mediaRecorder.ondataavailable=event=>{if(event.data.size) exportChunks.push(event.data);};
+  mediaRecorder.onerror=()=>{exportStatus.textContent='An error interrupted the export.';};
+  mediaRecorder.onstop=()=>{
+    const blob=new Blob(exportChunks,{type:mediaRecorder.mimeType||mimeType});
+    tracks.forEach(track=>track.stop());
+    setExportLock(false);
+    if(!blob.size){
+      exportStatus.textContent='The browser produced an empty video. Try another supported browser or input format.';
+      return;
+    }
+    const extension=blob.type.includes('mp4')?'mp4':'webm';
+    const url=URL.createObjectURL(blob);
+    const link=document.createElement('a');
+    link.href=url;
+    link.download='pixel-saturation-processed.'+extension;
+    link.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    exportStatus.textContent='Export complete. Your processed video has been downloaded.';
+  };
+  resetState();
+  video.pause();
+  video.currentTime=0;
+  seekBar.value=0;
+  currentTimeEl.textContent='00:00';
+  progressFill.style.width='0%';
+  video.playbackRate=1;
+  speedSelect.value='1';
+  setExportLock(true);
+  exportStatus.textContent='Processing and recording from the beginning…';
+  mediaRecorder.start();
+  isRunning=true;
+  video.play().then(schedule).catch(()=>{
+    isRunning=false;
+    if(mediaRecorder&&mediaRecorder.state!=='inactive') mediaRecorder.stop();
+  });
+}
+
+function setExportLock(locked){
+  [playBtn,pauseBtn,stopBtn,resetBtn,seekBar,speedSelect,exportBtn].forEach(control=>control.disabled=locked||(!video.src));
+}
 
 function getColorRGB(){
   if(curveToggle.checked){
-    // Curva espectral automática: vermelho → amarelo → verde → ciano → azul → magenta → vermelho
+  // Automatic spectrum curve: red, yellow, green, cyan, blue, magenta, red.
     const duration=video.duration||1;
     let progress=Math.min(1, video.currentTime/duration);
     
