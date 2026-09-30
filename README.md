@@ -1,26 +1,26 @@
 # Pixel Saturation
 
-A standalone, browser-based video effect. Pixels are tracked across frames and lock into a selected color after changing a chosen number of times.
+Um efeito de vídeo que roda diretamente no navegador. O app acompanha os pixels entre os quadros e fixa cada um em uma cor escolhida depois que ele muda um número definido de vezes.
 
-## Run
+## Executar localmente
 
-Open `Pixel Saturation - Video Decay.html` in a recent desktop browser. No build step, server, or external dependencies are required.
+Abra [`index.html`](index.html) em uma versão recente de um navegador para desktop. Não é necessário instalar dependências, iniciar um servidor ou executar um processo de build.
 
-Choose a video, adjust the lock colors and effect settings, then press **Play** to preview. **Reset effect** clears the accumulated pixel state and returns to the beginning.
+Escolha um vídeo, ajuste as cores e os parâmetros do efeito e pressione **Play** para pré-visualizar. **Reset effect** limpa o estado acumulado dos pixels e volta ao início.
 
-## Video formats
+## Formatos de vídeo
 
-The file picker accepts common video files, including MP4, M4V, WebM, Ogg, MOV, MKV, and AVI. Accepted extensions do not guarantee playback: decoding depends on the codecs built into the browser and operating system. H.264 MP4 and VP8/VP9 WebM are widely supported; MOV, MKV, AVI, and other codecs vary by browser.
+O seletor aceita formatos comuns, incluindo MP4, M4V, WebM, Ogg, MOV, MKV e AVI. A extensão, por si só, não garante a reprodução: a decodificação depende dos codecs disponíveis no navegador e no sistema operacional. MP4 com H.264 e WebM com VP8/VP9 têm ampla compatibilidade; o suporte a MOV, MKV, AVI e outros codecs varia conforme o navegador.
 
-## Export
+## Exportar
 
-Press **Export processed video** to restart processing from the beginning and record the rendered canvas. The browser downloads the result as WebM when supported, or another format exposed by its MediaRecorder implementation. Audio is included only when the browser exposes the source audio track to `captureStream()`; otherwise the exported video is silent. Export runs in real time, so a video takes approximately its playback duration to process.
+Pressione **Export processed video** para reiniciar o processamento desde o começo e gravar o canvas processado. O navegador baixa o resultado em WebM quando disponível, ou em outro formato oferecido pela implementação de `MediaRecorder`. O áudio só será incluído se o navegador disponibilizar a faixa original por `captureStream()`; caso contrário, o vídeo exportado será silencioso. A exportação acontece em tempo real, então pode levar aproximadamente a duração do vídeo.
 
-Processed-video export requires `MediaRecorder` and canvas `captureStream()` support. A recent version of Chrome, Edge, or Firefox is recommended. The browser may ask for permission or block downloads depending on its security settings.
+A exportação requer suporte a `MediaRecorder` e `captureStream()` no canvas. Recomendamos uma versão recente do Chrome, Edge ou Firefox. Dependendo das configurações de segurança, o navegador pode solicitar permissão ou bloquear o download.
 
-## Effect settings
+## Configurações do efeito
 
-- **Changes before lock**: Number of detected pixel changes before the pixel is permanently colored.
-- **Change sensitivity**: Minimum sum of the red, green, and blue channel differences needed to count as a change.
-- **Temporal gradient**: Interpolate between the primary and end colors over the video's duration.
-- **Auto color curve**: Cycle through a spectrum of colors over time; takes priority over the temporal gradient.
+- **Changes before lock**: quantidade de mudanças detectadas antes de um pixel ficar permanentemente colorido.
+- **Change sensitivity**: diferença mínima total entre os canais vermelho, verde e azul para contar como mudança.
+- **Temporal gradient**: interpola entre as cores primária e secundária ao longo do vídeo.
+- **Auto color curve**: percorre um espectro de cores ao longo do tempo; tem prioridade sobre o gradiente temporal.
