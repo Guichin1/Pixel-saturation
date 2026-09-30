@@ -4,7 +4,7 @@ Um efeito de vídeo que roda diretamente no navegador. O app acompanha os pixels
 
 ## Executar localmente
 
-Abra [`index.html`](index.html) em uma versão recente de um navegador para desktop. Não é necessário instalar dependências, iniciar um servidor ou executar um processo de build.
+Abra [`index.html`](index.html) em uma versão recente de um navegador para desktop. Não é necessário instalar dependências ou executar um processo de build. Para usar o vídeo de demonstração incluído, abra o app por um servidor local ou pelo GitHub Pages e pressione **Use sample**; **Choose video** continua disponível para arquivos próprios.
 
 Escolha um vídeo, ajuste as cores e os parâmetros do efeito e pressione **Play** para pré-visualizar. **Reset effect** limpa o estado acumulado dos pixels e volta ao início.
 
@@ -12,9 +12,11 @@ Escolha um vídeo, ajuste as cores e os parâmetros do efeito e pressione **Play
 
 O seletor aceita formatos comuns, incluindo MP4, M4V, WebM, Ogg, MOV, MKV e AVI. A extensão, por si só, não garante a reprodução: a decodificação depende dos codecs disponíveis no navegador e no sistema operacional. MP4 com H.264 e WebM com VP8/VP9 têm ampla compatibilidade; o suporte a MOV, MKV, AVI e outros codecs varia conforme o navegador.
 
+O repositório inclui `Sample/FROM-EARTH-TO-SPACE-Free-HD-VIDEO-NO-COPYRIGHT_001_720p.mp4` como mídia de demonstração e teste (H.264, 1280×720, aproximadamente 2 min 23 s). O botão **Use sample** carrega esse arquivo diretamente do repositório.
+
 ## Exportar
 
-Pressione **Export processed video** para reiniciar o processamento desde o começo e gravar o canvas processado. O navegador baixa o resultado em WebM quando disponível, ou em outro formato oferecido pela implementação de `MediaRecorder`. O áudio só será incluído se o navegador disponibilizar a faixa original por `captureStream()`; caso contrário, o vídeo exportado será silencioso. A exportação acontece em tempo real, então pode levar aproximadamente a duração do vídeo.
+Pressione **Export processed video** para reiniciar o processamento desde o começo e gravar o canvas processado. O navegador baixa o resultado em WebM quando disponível, ou em outro formato oferecido pela implementação de `MediaRecorder`. O app tenta incluir o áudio usando Web Audio e, como alternativa, `captureStream()`; a exportação será silenciosa se o arquivo não tiver uma faixa de áudio decodificável. A exportação acontece em tempo real, então pode levar aproximadamente a duração do vídeo.
 
 A exportação requer suporte a `MediaRecorder` e `captureStream()` no canvas. Recomendamos uma versão recente do Chrome, Edge ou Firefox. Dependendo das configurações de segurança, o navegador pode solicitar permissão ou bloquear o download.
 
@@ -26,4 +28,5 @@ A exportação requer suporte a `MediaRecorder` e `captureStream()` no canvas. R
 - **Temporal gradient**: interpola entre as cores primária e secundária ao longo do vídeo. A curva pode ser `Linear`, `Logarithmic`, `Exponential`, `Ease in`, `Ease out` ou `Smooth step`.
 - **Auto color curve**: percorre uma paleta de cores ao longo do vídeo e tem prioridade sobre o gradiente temporal. Escolha a paleta (`Spectrum`, `Ember`, `Ocean`, `Sunset`, `Forest` ou `Candy`) e uma curva de progressão. Curva e paleta também funcionam independentemente das cores escolhidas para o gradiente.
 - **Processing load**: `Low` analisa um a cada quatro frames, `Default` um a cada dois e `Ultra` analisa todos os frames recebidos. Modos de menor carga usam menos CPU, mas podem alterar quando os pixels saturam; resultados não são diretamente comparáveis entre perfis. O navegador e o sistema operacional controlam o escalonamento da CPU: uma página não consegue reservar o computador inteiro nem limitar outras abas ou processos. `Ultra` pode deixar esta aba menos responsiva.
-- **Volume**: a última configuração é lembrada neste navegador por meio do armazenamento local.
+- **Pré-visualização ao vivo**: o vídeo toca no ritmo normal do arquivo, independentemente da análise dos pixels. O efeito é mostrado como uma camada transparente e pode ficar alguns frames atrás se o processamento não acompanhar; o playback não é pausado para esperar o efeito.
+- **Volume**: começa em 100% quando não há preferência salva; o botão **Mute** alterna o silêncio e a última posição do volume é lembrada neste navegador.

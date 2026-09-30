@@ -15,7 +15,8 @@ body{margin:0;min-height:100vh;padding:34px clamp(16px,4vw,56px) 48px;background
 .workspace{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:14px;align-items:start}
 .main-column,.side-column{display:flex;flex-direction:column;gap:12px;min-width:0}
 .canvas-container{width:100%;aspect-ratio:16/9;min-height:240px;background:#080a08;border:1px solid var(--line);overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative}
-canvas{max-width:100%;max-height:100%;width:auto;height:auto;display:block}.placeholder{color:var(--muted);text-align:center;font-size:13px;position:absolute;pointer-events:none}
+.preview-video,.preview-canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}.preview-canvas{pointer-events:none}.placeholder{color:var(--muted);text-align:center;font-size:13px;position:absolute;pointer-events:none;z-index:1}
+.video-source-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.sample-btn{background:var(--panel);font-weight:600}
 .fullscreen-btn{position:absolute;top:12px;right:12px;z-index:2;padding:7px 10px;border-radius:8px;background:rgba(17,21,18,.88);font-size:20px;line-height:1}.fullscreen-btn:hover:not(:disabled){transform:none}.canvas-container:fullscreen{width:100vw;height:100vh;max-width:none;max-height:none;min-height:0;aspect-ratio:auto;border:0;padding:48px 16px 16px;background:#080a08}.canvas-container:fullscreen canvas{max-width:100%;max-height:100%;object-fit:contain}
 .player-bar,.panel{background:var(--panel);border:1px solid var(--line);padding:14px}.player-bar{display:flex;flex-direction:column;gap:12px}.timeline{display:flex;align-items:center;gap:12px;width:100%}.time-display{font-size:11px;color:var(--muted);font-family:ui-monospace,monospace;min-width:94px}.player-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.player-btn,button,.file-picker{font:inherit;border:1px solid var(--line);background:#111512;color:var(--text);padding:9px 12px;border-radius:999px;cursor:pointer;transition:.2s ease}.player-btn:hover,button:hover,.file-picker:hover{border-color:var(--accent);transform:translateY(-1px)}.player-btn.primary{background:var(--accent);color:#111;border-color:var(--accent);font-weight:700}.player-btn:disabled,button:disabled,select:disabled,input:disabled{cursor:not-allowed;opacity:.55}.speed-control,.volume-control{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px}.volume-control input{width:76px}.player-controls select{background:#151714;border:1px solid var(--line);color:var(--text);padding:7px 9px;border-radius:8px}
 input[type=file]{display:none}input[type=color],input[type=number]{font:inherit;color:var(--text);background:#121411;border:1px solid var(--line);padding:8px}input[type=number]{width:100%;height:32px;border-radius:8px}.control-group select{width:100%;min-height:36px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#151714;color:var(--text);font:inherit;font-size:12px}
@@ -35,8 +36,8 @@ input[type=range]{height:4px;appearance:none;background:#454b40;border:none;bord
 <div class="workspace">
 <section class="main-column" aria-label="Video preview and playback">
 <div class="canvas-container">
-  <video id="videoElement" style="display:none" crossorigin="anonymous"></video>
-  <canvas id="canvas"></canvas>
+  <video id="videoElement" class="preview-video" crossorigin="anonymous" playsinline></video>
+  <canvas id="canvas" class="preview-canvas"></canvas>
   <div class="placeholder" id="placeholder">Choose a video to start previewing</div>
   <button class="fullscreen-btn" id="fullscreenBtn" type="button" aria-label="Enter fullscreen" title="Enter fullscreen" disabled>⛶</button>
 </div>
@@ -58,6 +59,7 @@ input[type=range]{height:4px;appearance:none;background:#454b40;border:none;bord
       <option value="1.5">1.5x</option>
       <option value="2">2x</option>
     </select></div>
+    <button class="player-btn" id="muteBtn" type="button" aria-label="Mute audio" disabled>Mute</button>
     <div class="volume-control"><label for="volumeSlider">Volume</label><input type="range" id="volumeSlider" min="0" max="100" value="100" aria-label="Volume" disabled></div>
   </div>
 </div>
@@ -71,7 +73,7 @@ input[type=range]{height:4px;appearance:none;background:#454b40;border:none;bord
 </section>
 
 <aside class="side-column">
-  <label class="file-picker" for="videoInput">Choose video</label>
+  <div class="video-source-actions"><label class="file-picker" for="videoInput">Choose video</label><button class="sample-btn" id="sampleBtn" type="button">Use sample</button></div>
   <input type="file" id="videoInput" accept="video/*,.mp4,.m4v,.webm,.ogv,.mov,.mkv,.avi">
   <section class="panel control-panel" aria-label="Effect settings">
     <h2 class="section-title">Effect settings</h2>
@@ -103,6 +105,7 @@ input[type=range]{height:4px;appearance:none;background:#454b40;border:none;bord
 <script>
 const $ = id => document.getElementById(id);
 const videoInput=$('videoInput'), video=$('videoElement'), resetBtn=$('resetBtn');
+const sampleBtn=$('sampleBtn');
 const colorInput=$('colorInput'), color2Input=$('color2Input'), gradientToggle=$('gradientToggle'), curveToggle=$('curveToggle');
 const gradientCurveInput=$('gradientCurveInput'), curveShapeInput=$('curveShapeInput'), paletteInput=$('paletteInput');
 const algorithmInput=$('algorithmInput'), resourceInput=$('resourceInput');
@@ -112,14 +115,19 @@ const canvasContainer=$('canvas').parentElement, fullscreenBtn=$('fullscreenBtn'
 const placeholder=$('placeholder'), progressFill=$('progressFill');
 const playBtn=$('playBtn'), pauseBtn=$('pauseBtn'), stopBtn=$('stopBtn');
 const seekBar=$('seekBar'), speedSelect=$('speedSelect'), volumeSlider=$('volumeSlider');
+const muteBtn=$('muteBtn');
 const currentTimeEl=$('currentTime'), durationEl=$('duration');
 const exportBtn=$('exportBtn'), exportStatus=$('exportStatus');
+const exportCanvas=document.createElement('canvas'), exportCtx=exportCanvas.getContext('2d');
 
 let isRunning=false, pending=false, isUserSeeking=false;
 let counts=null, saturated=null, saturationTime=null, bufA=null, bufB=null, hasPrev=false;
 let saturatedTotal=0, frameCount=0;
 let mediaRecorder=null, exportChunks=[];
 let videoFrameSequence=0;
+let isExporting=false;
+let audioContext=null, audioSource=null, exportAudioDestination=null;
+let currentVideoObjectUrl=null;
 
 const volumeStorageKey='pixel-saturation-volume';
 const colorPalettes={
@@ -133,7 +141,9 @@ const colorPalettes={
 
 function loadSavedVolume(){
   try{
-    const value=Number(localStorage.getItem(volumeStorageKey));
+    const storedValue=localStorage.getItem(volumeStorageKey);
+    if(storedValue===null) return 100;
+    const value=Number(storedValue);
     if(Number.isFinite(value)&&value>=0&&value<=100) return value;
   }catch(error){
     // Storage can be unavailable for local files or restricted browser sessions.
@@ -163,14 +173,29 @@ function formatTime(s){
 videoInput.addEventListener('change', e=>{
   const file=e.target.files[0];
   if(!file) return;
+  loadVideoSource(URL.createObjectURL(file),file.name,true);
+});
+
+sampleBtn.addEventListener('click',()=>{
+  sampleBtn.disabled=true;
+  exportStatus.textContent='Loading bundled sample…';
+  const sampleUrl=new URL('Sample/FROM-EARTH-TO-SPACE-Free-HD-VIDEO-NO-COPYRIGHT_001_720p.mp4',document.baseURI);
+  loadVideoSource(sampleUrl.href,'Earth to Space sample',false);
+});
+
+function loadVideoSource(source,name,isObjectUrl){
   isRunning=false;
+  video.pause();
+  if(currentVideoObjectUrl) URL.revokeObjectURL(currentVideoObjectUrl);
+  currentVideoObjectUrl=isObjectUrl?source:null;
   video.volume=Number(volumeSlider.value)/100;
-  video.src=URL.createObjectURL(file);
-  video.load();
-  
+  video.src=source;
+
   video.onloadedmetadata=()=>{
     canvas.width=video.videoWidth;
     canvas.height=video.videoHeight;
+    exportCanvas.width=video.videoWidth;
+    exportCanvas.height=video.videoHeight;
     placeholder.style.display='none';
     fullscreenBtn.disabled=!(document.fullscreenEnabled&&canvasContainer.requestFullscreen);
     resetBtn.disabled=false;
@@ -178,6 +203,7 @@ videoInput.addEventListener('change', e=>{
     pauseBtn.disabled=false;
     stopBtn.disabled=false;
     speedSelect.disabled=false;
+    muteBtn.disabled=false;
     volumeSlider.disabled=false;
     seekBar.disabled=false;
     exportBtn.disabled=false;
@@ -185,12 +211,14 @@ videoInput.addEventListener('change', e=>{
     resetState();
     progressFill.style.width='0%';
     seekBar.value=0;
-    exportStatus.textContent='Ready to process from the beginning.';
+    exportStatus.textContent='Ready to process '+name+' from the beginning.';
+    sampleBtn.disabled=false;
   };
   
   video.onerror=(e)=>{
     console.error('Failed to load video:', e);
-    exportStatus.textContent='This video could not be decoded by your browser.';
+    exportStatus.textContent='This video could not be loaded or decoded. For the bundled sample, open the site over HTTP or GitHub Pages.';
+    sampleBtn.disabled=false;
   };
   
   video.onended=()=>{
@@ -205,7 +233,8 @@ videoInput.addEventListener('change', e=>{
     if(!isUserSeeking) seekBar.value=(video.currentTime/video.duration)*100;
     currentTimeEl.textContent=formatTime(video.currentTime);
   };
-});
+  video.load();
+}
 
 playBtn.addEventListener('click', ()=>{
   if(!video.src) return;
@@ -257,10 +286,26 @@ speedSelect.addEventListener('change', (e)=>{
 volumeSlider.addEventListener('input', (e)=>{
   const vol=parseFloat(e.target.value)/100;
   video.volume=vol;
+  if(vol>0&&video.muted){
+    video.muted=false;
+    updateMuteButton();
+  }
   try{localStorage.setItem(volumeStorageKey,String(e.target.value));}catch(error){
     // Keep the current volume even when the browser blocks persistence.
   }
 });
+
+muteBtn.addEventListener('click',()=>{
+  video.muted=!video.muted;
+  updateMuteButton();
+});
+
+function updateMuteButton(){
+  const label=video.muted?'Unmute':'Mute';
+  muteBtn.textContent=label;
+  muteBtn.setAttribute('aria-label',label+' audio');
+  muteBtn.setAttribute('aria-pressed',String(video.muted));
+}
 
 fullscreenBtn.addEventListener('click',async()=>{
   try{
@@ -294,7 +339,7 @@ exportBtn.addEventListener('click', startExport);
 
 function startExport(){
   if(!video.src||!canvas.width) return;
-  if(!window.MediaRecorder||!canvas.captureStream){
+  if(!window.MediaRecorder||!exportCanvas.captureStream){
     exportStatus.textContent='Processed-video export is not supported in this browser. Try a recent version of Chrome, Edge, or Firefox.';
     return;
   }
@@ -304,25 +349,26 @@ function startExport(){
     exportStatus.textContent='This browser cannot encode a supported video format.';
     return;
   }
-  const canvasStream=canvas.captureStream(30);
+  const canvasStream=exportCanvas.captureStream(30);
   const tracks=[...canvasStream.getVideoTracks()];
-  const captureVideo=video.captureStream||video.mozCaptureStream;
-  if(captureVideo){
-    try{tracks.push(...captureVideo.call(video).getAudioTracks());}catch(error){console.warn('Audio capture is unavailable:',error);}
-  }
+  const audioCapture=getExportAudioTrack();
+  if(audioCapture) tracks.push(audioCapture.track);
   const outputStream=new MediaStream(tracks);
   exportChunks=[];
+  isExporting=true;
   try{mediaRecorder=new MediaRecorder(outputStream,{mimeType});}
   catch(error){
+    isExporting=false;
     exportStatus.textContent='The video recorder could not be started in this browser.';
-    tracks.forEach(track=>track.stop());
+    tracks.forEach(track=>{if(track!==audioCapture?.persistentTrack) track.stop();});
     return;
   }
   mediaRecorder.ondataavailable=event=>{if(event.data.size) exportChunks.push(event.data);};
   mediaRecorder.onerror=()=>{exportStatus.textContent='An error interrupted the export.';};
   mediaRecorder.onstop=()=>{
+    isExporting=false;
     const blob=new Blob(exportChunks,{type:mediaRecorder.mimeType||mimeType});
-    tracks.forEach(track=>track.stop());
+    tracks.forEach(track=>{if(track!==audioCapture?.persistentTrack) track.stop();});
     setExportLock(false);
     if(!blob.size){
       exportStatus.textContent='The browser produced an empty video. Try another supported browser or input format.';
@@ -353,6 +399,38 @@ function startExport(){
     isRunning=false;
     if(mediaRecorder&&mediaRecorder.state!=='inactive') mediaRecorder.stop();
   });
+}
+
+function getExportAudioTrack(){
+  if(window.AudioContext){
+    try{
+      if(!audioContext){
+        audioContext=new AudioContext();
+        exportAudioDestination=audioContext.createMediaStreamDestination();
+        audioSource=audioContext.createMediaElementSource(video);
+        audioSource.connect(audioContext.destination);
+        audioSource.connect(exportAudioDestination);
+      }
+      audioContext.resume().catch(error=>console.warn('Audio context could not resume:',error));
+      const track=exportAudioDestination.stream.getAudioTracks()[0];
+      if(track) return {track,persistentTrack:track};
+    }catch(error){
+      console.warn('Web Audio export capture is unavailable:',error);
+    }
+  }
+  const captureVideo=video.captureStream||video.mozCaptureStream;
+  if(captureVideo){
+    try{
+      const stream=captureVideo.call(video);
+      const audioTracks=stream.getAudioTracks();
+      stream.getVideoTracks().forEach(track=>track.stop());
+      audioTracks.slice(1).forEach(track=>track.stop());
+      if(audioTracks.length) return {track:audioTracks[0],persistentTrack:null};
+    }catch(error){
+      console.warn('Video audio capture is unavailable:',error);
+    }
+  }
+  return null;
 }
 
 function setExportLock(locked){
@@ -453,9 +531,20 @@ function hslToRgb(h,s,l){
 function schedule(){
   if(pending||!isRunning) return;
   pending=true;
-  const cb=()=>{pending=false; processFrame();};
+  const cb=()=>{
+    pending=false;
+    if(!isRunning) return;
+    processFrame();
+    if(isExporting) renderExportFrame();
+    if(isRunning&&!video.ended) schedule();
+  };
   if('requestVideoFrameCallback' in video) video.requestVideoFrameCallback(cb);
   else requestAnimationFrame(cb);
+}
+
+function renderExportFrame(){
+  exportCtx.drawImage(video,0,0,exportCanvas.width,exportCanvas.height);
+  exportCtx.drawImage(canvas,0,0,exportCanvas.width,exportCanvas.height);
 }
 
 function processFrame(){
@@ -496,6 +585,9 @@ function processFrame(){
       d[i]=pixelColors[ci];
       d[i+1]=pixelColors[ci+1];
       d[i+2]=pixelColors[ci+2];
+      d[i+3]=255;
+    }else{
+      d[i+3]=0;
     }
   }
 
@@ -504,7 +596,6 @@ function processFrame(){
   frameCount++;
   updateStats();
   progressFill.style.width=(video.currentTime/video.duration*100)+'%';
-  if(!video.ended) schedule();
 }
 
 function updateStats(){
