@@ -14,6 +14,8 @@ O seletor aceita formatos comuns, incluindo MP4, M4V, WebM, Ogg, MOV, MKV e AVI.
 
 O repositório inclui `Sample/FROM-EARTH-TO-SPACE-Free-HD-VIDEO-NO-COPYRIGHT_001_720p.mp4` como mídia de demonstração e teste (H.264, 1280×720, aproximadamente 2 min 23 s). O botão **Use sample** carrega esse arquivo diretamente do repositório.
 
+Para um teste rápido, use **Use sample**, confira se a duração aparece como `02:23`, reproduza alguns segundos e pause para verificar a contagem de frames. Para testar exportação sem esperar o vídeo inteiro, escolha um clipe curto derivado da sample.
+
 ## Exportar
 
 Pressione **Export processed video** para reiniciar o processamento desde o começo e gravar o canvas processado. O navegador baixa o resultado em WebM quando disponível, ou em outro formato oferecido pela implementação de `MediaRecorder`. O app tenta incluir o áudio usando Web Audio e, como alternativa, `captureStream()`; a exportação será silenciosa se o arquivo não tiver uma faixa de áudio decodificável. A exportação acontece em tempo real, então pode levar aproximadamente a duração do vídeo.

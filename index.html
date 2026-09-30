@@ -16,6 +16,7 @@ body{margin:0;min-height:100vh;padding:34px clamp(16px,4vw,56px) 48px;background
 .main-column,.side-column{display:flex;flex-direction:column;gap:12px;min-width:0}
 .canvas-container{width:100%;aspect-ratio:16/9;min-height:240px;background:#080a08;border:1px solid var(--line);overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative}
 .preview-video,.preview-canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}.preview-canvas{pointer-events:none}.placeholder{color:var(--muted);text-align:center;font-size:13px;position:absolute;pointer-events:none;z-index:1}
+.tooltip-target{position:relative}.tooltip-target[data-tooltip]::after{content:attr(data-tooltip);position:fixed;z-index:1000;left:var(--tooltip-x,50vw);top:var(--tooltip-top,auto);bottom:var(--tooltip-bottom,auto);width:max-content;max-width:min(260px,calc(100vw - 32px));padding:8px 10px;border:1px solid #59604f;border-radius:6px;background:#080a08;color:var(--text);font-size:11px;font-weight:400;line-height:1.45;text-align:left;white-space:normal;box-shadow:0 6px 18px #0009;opacity:0;visibility:hidden;pointer-events:none;transform:translate(-50%,var(--tooltip-offset-y,4px));transition:opacity .14s ease,transform .14s ease,visibility .14s}.tooltip-target[data-tooltip]:hover::after,.tooltip-target[data-tooltip]:focus-within::after,.tooltip-target[data-tooltip]:focus-visible::after{opacity:1;visibility:visible;transform:translate(-50%,0)}
 .video-source-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.sample-btn{background:var(--panel);font-weight:600}
 .fullscreen-btn{position:absolute;top:12px;right:12px;z-index:2;padding:7px 10px;border-radius:8px;background:rgba(17,21,18,.88);font-size:20px;line-height:1}.fullscreen-btn:hover:not(:disabled){transform:none}.canvas-container:fullscreen{width:100vw;height:100vh;max-width:none;max-height:none;min-height:0;aspect-ratio:auto;border:0;padding:48px 16px 16px;background:#080a08}.canvas-container:fullscreen canvas{max-width:100%;max-height:100%;object-fit:contain}
 .player-bar,.panel{background:var(--panel);border:1px solid var(--line);padding:14px}.player-bar{display:flex;flex-direction:column;gap:12px}.timeline{display:flex;align-items:center;gap:12px;width:100%}.time-display{font-size:11px;color:var(--muted);font-family:ui-monospace,monospace;min-width:94px}.player-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.player-btn,button,.file-picker{font:inherit;border:1px solid var(--line);background:#111512;color:var(--text);padding:9px 12px;border-radius:999px;cursor:pointer;transition:.2s ease}.player-btn:hover,button:hover,.file-picker:hover{border-color:var(--accent);transform:translateY(-1px)}.player-btn.primary{background:var(--accent);color:#111;border-color:var(--accent);font-weight:700}.player-btn:disabled,button:disabled,select:disabled,input:disabled{cursor:not-allowed;opacity:.55}.speed-control,.volume-control{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:11px}.volume-control input{width:76px}.player-controls select{background:#151714;border:1px solid var(--line);color:var(--text);padding:7px 9px;border-radius:8px}
@@ -23,6 +24,7 @@ input[type=file]{display:none}input[type=color],input[type=number]{font:inherit;
 .color-row{display:flex;align-items:center;gap:9px}.color-row label{color:var(--muted);font-weight:400}.export-btn{width:100%;background:var(--hot);border-color:var(--hot);color:#17110f;font-weight:700}.export-status{min-height:16px;color:var(--muted);font-size:11px;line-height:1.4}.progress-bar{height:4px;background:#343a30;overflow:hidden}.progress-fill{height:100%;background:var(--accent);width:0%}.info{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.stat{padding:12px 10px;background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;gap:4px}.stat-value{font-size:clamp(20px,3vw,28px);font-weight:600}.stat-label{font-size:10px}.notice{margin:0;color:var(--muted);font-size:12px;line-height:1.5}.format-note{color:#c5d0b5}.file-picker{display:inline-block;text-align:center;background:var(--panel);padding:12px 18px;border-radius:10px;font-weight:600}.control-panel{display:flex;flex-direction:column;gap:12px}.control-group{display:flex;flex-direction:column;gap:8px}.inline-controls{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}.inline-controls input{accent-color:var(--accent)}
 input[type=range]{height:4px;appearance:none;background:#454b40;border:none;border-radius:3px;outline:none;cursor:pointer;padding:0}input[type=range]::-webkit-slider-thumb{appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);border:2px solid #111}
 @media(max-width:800px){.workspace{grid-template-columns:1fr}.side-column{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}.control-panel{grid-column:1/-1}.header{align-items:start;flex-direction:column}.header p{max-width:100%}}
+.panel-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;padding:0;border:0;border-radius:0;background:transparent;text-align:left}.panel-toggle:hover{transform:none;border-color:transparent;background:transparent}.panel-toggle .section-title{margin:0}.panel-toggle-icon{font-size:19px;line-height:1;color:var(--accent)}.effect-settings-body{display:flex;flex-direction:column;gap:12px}.control-panel.is-collapsed .effect-settings-body{display:none}
 @media(max-width:520px){body{padding:20px 14px 32px}.side-column{display:flex}.canvas-container{min-height:190px}.player-controls{gap:6px}.player-btn{padding:8px 9px}.info{gap:6px}.stat{padding:10px 8px}}
 </style>
 </head>
@@ -39,19 +41,19 @@ input[type=range]{height:4px;appearance:none;background:#454b40;border:none;bord
   <video id="videoElement" class="preview-video" crossorigin="anonymous" playsinline></video>
   <canvas id="canvas" class="preview-canvas"></canvas>
   <div class="placeholder" id="placeholder">Choose a video to start previewing</div>
-  <button class="fullscreen-btn" id="fullscreenBtn" type="button" aria-label="Enter fullscreen" title="Enter fullscreen" disabled>⛶</button>
+  <button class="fullscreen-btn" id="fullscreenBtn" type="button" aria-label="Enter fullscreen" title="Enter fullscreen" data-tooltip="Expand the processed preview to fill the screen." disabled>⛶</button>
 </div>
 
 <div class="player-bar">
   <div class="timeline">
-    <span class="time-display"><span id="currentTime">00:00</span> / <span id="duration">00:00</span></span>
-    <input type="range" id="seekBar" min="0" max="100" value="0" aria-label="Seek video" disabled>
+    <span class="time-display tooltip-target" data-tooltip="Current playback position and total video duration."><span id="currentTime">00:00</span> / <span id="duration">00:00</span></span>
+    <input type="range" id="seekBar" min="0" max="100" value="0" aria-label="Seek video" title="Seek to a position in the video." disabled>
   </div>
   <div class="player-controls">
-    <button class="player-btn primary" id="playBtn" disabled>Play</button>
-    <button class="player-btn" id="pauseBtn" disabled>Pause</button>
-    <button class="player-btn" id="stopBtn" disabled>Stop</button>
-    <div class="speed-control"><label for="speedSelect">Speed</label>
+    <button class="player-btn primary tooltip-target" id="playBtn" data-tooltip="Start playback and pixel analysis." disabled>Play</button>
+    <button class="player-btn tooltip-target" id="pauseBtn" data-tooltip="Pause playback and pixel analysis." disabled>Pause</button>
+    <button class="player-btn tooltip-target" id="stopBtn" data-tooltip="Stop playback and return to the beginning." disabled>Stop</button>
+    <div class="speed-control tooltip-target" data-tooltip="Change playback speed. Faster speeds can skip frames during pixel analysis."><label for="speedSelect">Speed</label>
     <select id="speedSelect" disabled>
       <option value="0.25">0.25x</option>
       <option value="0.5">0.5x</option>
@@ -59,40 +61,44 @@ input[type=range]{height:4px;appearance:none;background:#454b40;border:none;bord
       <option value="1.5">1.5x</option>
       <option value="2">2x</option>
     </select></div>
-    <button class="player-btn" id="muteBtn" type="button" aria-label="Mute audio" disabled>Mute</button>
-    <div class="volume-control"><label for="volumeSlider">Volume</label><input type="range" id="volumeSlider" min="0" max="100" value="100" aria-label="Volume" disabled></div>
+    <button class="player-btn tooltip-target" id="muteBtn" type="button" aria-label="Mute audio" data-tooltip="Toggle audio mute without changing the saved volume." disabled>Mute</button>
+    <div class="volume-control tooltip-target" data-tooltip="Set playback volume. Your choice is saved in this browser."><label for="volumeSlider">Volume</label><input type="range" id="volumeSlider" min="0" max="100" value="100" aria-label="Volume" disabled></div>
   </div>
 </div>
 
-<div class="progress-bar" aria-label="Processing progress"><div class="progress-fill" id="progressFill"></div></div>
+<div class="progress-bar tooltip-target" aria-label="Processing progress" data-tooltip="Progress through the video timeline."><div class="progress-fill" id="progressFill"></div></div>
 <div class="info">
-  <div class="stat"><div class="stat-value" id="frameCount">0</div><div class="stat-label">Frames processed</div></div>
-  <div class="stat"><div class="stat-value" id="pixelsCount">0</div><div class="stat-label">Pixels locked</div></div>
-  <div class="stat"><div class="stat-value" id="pctCount">0%</div><div class="stat-label">Frame coverage</div></div>
+  <div class="stat tooltip-target" data-tooltip="Frames analyzed by the saturation effect; lower processing-load modes analyze fewer frames."><div class="stat-value" id="frameCount">0</div><div class="stat-label">Frames processed</div></div>
+  <div class="stat tooltip-target" data-tooltip="Pixels that reached the configured change count and were locked to a color."><div class="stat-value" id="pixelsCount">0</div><div class="stat-label">Pixels locked</div></div>
+  <div class="stat tooltip-target" data-tooltip="Locked pixels as a percentage of the entire frame."><div class="stat-value" id="pctCount">0%</div><div class="stat-label">Frame coverage</div></div>
 </div>
 </section>
 
 <aside class="side-column">
-  <div class="video-source-actions"><label class="file-picker" for="videoInput">Choose video</label><button class="sample-btn" id="sampleBtn" type="button">Use sample</button></div>
+  <div class="video-source-actions"><label class="file-picker tooltip-target" for="videoInput" data-tooltip="Load a video from your device. Supported codecs depend on the browser.">Choose video</label><button class="sample-btn tooltip-target" id="sampleBtn" type="button" data-tooltip="Load the bundled 720p sample video for a quick preview or test.">Use sample</button></div>
   <input type="file" id="videoInput" accept="video/*,.mp4,.m4v,.webm,.ogv,.mov,.mkv,.avi">
-  <section class="panel control-panel" aria-label="Effect settings">
-    <h2 class="section-title">Effect settings</h2>
-    <div class="control-group"><span class="section-title">Lock color</span><div class="color-row"><input type="color" id="colorInput" value="#ff654f" aria-label="First lock color"><label for="colorInput">Primary</label></div><div class="color-row"><input type="color" id="color2Input" value="#d2f36b" aria-label="Second lock color"><label for="color2Input">Secondary</label></div></div>
-    <div class="inline-controls"><label><input type="checkbox" id="gradientToggle"> Temporal gradient</label></div>
-    <div class="control-group"><label for="gradientCurveInput">Gradient curve</label><select id="gradientCurveInput"><option value="linear">Linear</option><option value="logarithmic">Logarithmic</option><option value="exponential">Exponential</option><option value="ease-in">Ease in</option><option value="ease-out">Ease out</option><option value="smoothstep">Smooth step</option></select></div>
-    <div class="inline-controls"><label><input type="checkbox" id="curveToggle"> Auto color curve</label></div>
-    <div class="control-group"><label for="curveShapeInput">Color curve</label><select id="curveShapeInput"><option value="linear">Linear</option><option value="logarithmic">Logarithmic</option><option value="exponential">Exponential</option><option value="ease-in">Ease in</option><option value="ease-out">Ease out</option><option value="smoothstep">Smooth step</option></select></div>
-    <div class="control-group"><label for="paletteInput">Color preset</label><select id="paletteInput"><option value="spectrum">Spectrum</option><option value="ember">Ember</option><option value="ocean">Ocean</option><option value="sunset">Sunset</option><option value="forest">Forest</option><option value="candy">Candy</option></select></div>
-    <div class="control-group"><label for="algorithmInput">Change detection</label><select id="algorithmInput"><option value="rgb-sum">RGB sum</option><option value="rgb-distance">RGB distance</option><option value="luminance">Luminance</option></select></div>
-    <div class="control-group"><label for="resourceInput">Processing load</label><select id="resourceInput"><option value="low">Low · every 4th frame</option><option value="default" selected>Default · every 2nd frame</option><option value="ultra">Ultra · every frame</option></select></div>
+  <section class="panel control-panel" id="effectPanel" aria-label="Effect settings">
+    <button class="panel-toggle tooltip-target" id="effectToggle" type="button" aria-expanded="true" aria-controls="effectSettingsBody" aria-label="Collapse Effect settings" data-tooltip="Collapse or expand the effect controls. Play collapses this panel; Pause opens it again.">
+      <span class="section-title">Effect settings</span><span class="panel-toggle-icon" id="effectToggleIcon" aria-hidden="true">−</span>
+    </button>
+    <div class="effect-settings-body" id="effectSettingsBody">
+    <div class="control-group"><span class="section-title">Lock color</span><div class="color-row tooltip-target" data-tooltip="Color used when a pixel reaches its change limit, or the starting gradient color."><input type="color" id="colorInput" value="#ff654f" aria-label="First lock color"><label for="colorInput">Primary</label></div><div class="color-row tooltip-target" data-tooltip="Ending color used by Temporal gradient."><input type="color" id="color2Input" value="#d2f36b" aria-label="Second lock color"><label for="color2Input">Secondary</label></div></div>
+    <div class="inline-controls"><label class="tooltip-target" data-tooltip="Blend the primary and secondary lock colors over the video's duration."><input type="checkbox" id="gradientToggle"> Temporal gradient</label></div>
+    <div class="control-group tooltip-target" data-tooltip="Shape the gradient's progress over time: logarithmic starts quickly; exponential starts slowly; easing and smooth step soften transitions."><label for="gradientCurveInput">Gradient curve</label><select id="gradientCurveInput"><option value="linear">Linear</option><option value="logarithmic">Logarithmic</option><option value="exponential">Exponential</option><option value="ease-in">Ease in</option><option value="ease-out">Ease out</option><option value="smoothstep">Smooth step</option></select></div>
+    <div class="inline-controls"><label class="tooltip-target" data-tooltip="Use the selected color palette across the video. This takes priority over Temporal gradient."><input type="checkbox" id="curveToggle"> Auto color curve</label></div>
+    <div class="control-group tooltip-target" data-tooltip="Shape how quickly the automatic palette moves through its colors during the video."><label for="curveShapeInput">Color curve</label><select id="curveShapeInput"><option value="linear">Linear</option><option value="logarithmic">Logarithmic</option><option value="exponential">Exponential</option><option value="ease-in">Ease in</option><option value="ease-out">Ease out</option><option value="smoothstep">Smooth step</option></select></div>
+    <div class="control-group tooltip-target" data-tooltip="Preset palettes used by Auto color curve: Spectrum, warm Ember, cool Ocean, Sunset, Forest, or Candy."><label for="paletteInput">Color preset</label><select id="paletteInput"><option value="spectrum">Spectrum</option><option value="ember">Ember</option><option value="ocean">Ocean</option><option value="sunset">Sunset</option><option value="forest">Forest</option><option value="candy">Candy</option></select></div>
+    <div class="control-group tooltip-target" data-tooltip="Choose how pixel changes are scored. Each method has a different sensitivity scale and visual response."><label for="algorithmInput">Change detection</label><select id="algorithmInput"><option value="rgb-sum">RGB sum</option><option value="rgb-distance">RGB distance</option><option value="luminance">Luminance</option></select></div>
+    <div class="control-group tooltip-target" data-tooltip="Low analyzes every 4th frame, Default every 2nd, Ultra every frame. Lower loads may change when pixels lock."><label for="resourceInput">Processing load</label><select id="resourceInput"><option value="low">Low · every 4th frame</option><option value="default" selected>Default · every 2nd frame</option><option value="ultra">Ultra · every frame</option></select></div>
     <p class="notice">Processing load controls how many frames this tab analyzes. Your browser and operating system control CPU scheduling; a web page cannot limit other tabs or processes. Ultra may make this tab less responsive.</p>
-    <div class="control-group"><label for="mutationInput">Changes before lock</label><input type="number" id="mutationInput" value="50" min="1" max="1000"></div>
-    <div class="control-group"><label for="sensInput">Change sensitivity</label><input type="number" id="sensInput" value="30" min="0" max="765"></div>
-    <button id="resetBtn" disabled>Reset effect</button>
+    <div class="control-group tooltip-target" data-tooltip="Number of detected changes a pixel must accumulate before its color is locked."><label for="mutationInput">Changes before lock</label><input type="number" id="mutationInput" value="50" min="1" max="1000"></div>
+    <div class="control-group tooltip-target" data-tooltip="Minimum color-difference score that counts as a change. Increase it to ignore compression noise; its scale depends on Change detection."><label for="sensInput">Change sensitivity</label><input type="number" id="sensInput" value="30" min="0" max="765"></div>
+    <button id="resetBtn" class="tooltip-target" data-tooltip="Clear accumulated pixel changes and return the video to the beginning." disabled>Reset effect</button>
+    </div>
   </section>
   <section class="panel">
     <h2 class="section-title">Export</h2>
-    <button class="export-btn" id="exportBtn" disabled>Export processed video</button>
+    <button class="export-btn tooltip-target" id="exportBtn" data-tooltip="Process the video from the beginning and download the result. Export runs in real time." disabled>Export processed video</button>
     <p class="export-status" id="exportStatus" role="status">Load a video to enable export.</p>
   </section>
   <p class="notice">Sensitivity is the minimum change score required to count as a pixel change. The selected detection method changes how that score is calculated. Compressed footage adds noise; raise sensitivity if pixels lock too quickly.</p>
@@ -103,9 +109,30 @@ input[type=range]{height:4px;appearance:none;background:#454b40;border:none;bord
 </div>
 
 <script>
+document.querySelectorAll('[data-tooltip]').forEach(element=>{
+  const description=element.dataset.tooltip;
+  element.title=description;
+  element.setAttribute('aria-description',description);
+  element.addEventListener('pointerenter',()=>positionTooltip(element));
+  element.addEventListener('focusin',()=>positionTooltip(element));
+});
+
+function positionTooltip(element){
+  const rect=element.getBoundingClientRect();
+  const tooltipWidth=Math.min(260,window.innerWidth-32);
+  const halfWidth=tooltipWidth/2;
+  const center=Math.max(16+halfWidth,Math.min(window.innerWidth-16-halfWidth,rect.left+rect.width/2));
+  const showBelow=rect.top<88;
+  element.style.setProperty('--tooltip-x',center+'px');
+  element.style.setProperty('--tooltip-top',showBelow?(rect.bottom+8)+'px':'auto');
+  element.style.setProperty('--tooltip-bottom',showBelow?'auto':(window.innerHeight-rect.top+8)+'px');
+  element.style.setProperty('--tooltip-offset-y',showBelow?'-4px':'4px');
+}
+
 const $ = id => document.getElementById(id);
 const videoInput=$('videoInput'), video=$('videoElement'), resetBtn=$('resetBtn');
 const sampleBtn=$('sampleBtn');
+const effectPanel=$('effectPanel'), effectToggle=$('effectToggle'), effectToggleIcon=$('effectToggleIcon');
 const colorInput=$('colorInput'), color2Input=$('color2Input'), gradientToggle=$('gradientToggle'), curveToggle=$('curveToggle');
 const gradientCurveInput=$('gradientCurveInput'), curveShapeInput=$('curveShapeInput'), paletteInput=$('paletteInput');
 const algorithmInput=$('algorithmInput'), resourceInput=$('resourceInput');
@@ -223,6 +250,7 @@ function loadVideoSource(source,name,isObjectUrl){
   
   video.onended=()=>{
     isRunning=false;
+    setEffectPanelCollapsed(false);
     playBtn.textContent='Play';
     progressFill.style.width='100%';
     updateStats();
@@ -238,21 +266,24 @@ function loadVideoSource(source,name,isObjectUrl){
 
 playBtn.addEventListener('click', ()=>{
   if(!video.src) return;
+  setEffectPanelCollapsed(true);
   isRunning=true;
   playBtn.textContent='Playing';
   video.play().then(()=>{
     schedule();
-  }).catch(e=>{isRunning=false;playBtn.textContent='Play';exportStatus.textContent='Playback could not start.';});
+  }).catch(e=>{isRunning=false;setEffectPanelCollapsed(false);playBtn.textContent='Play';exportStatus.textContent='Playback could not start.';});
 });
 
 pauseBtn.addEventListener('click', ()=>{
   isRunning=false;
+  setEffectPanelCollapsed(false);
   playBtn.textContent='Play';
   video.pause();
 });
 
 stopBtn.addEventListener('click', ()=>{
   isRunning=false;
+  setEffectPanelCollapsed(false);
   playBtn.textContent='Play';
   video.pause();
   video.currentTime=0;
@@ -305,6 +336,17 @@ function updateMuteButton(){
   muteBtn.textContent=label;
   muteBtn.setAttribute('aria-label',label+' audio');
   muteBtn.setAttribute('aria-pressed',String(video.muted));
+}
+
+effectToggle.addEventListener('click',()=>{
+  setEffectPanelCollapsed(effectToggle.getAttribute('aria-expanded')==='true');
+});
+
+function setEffectPanelCollapsed(collapsed){
+  effectPanel.classList.toggle('is-collapsed',collapsed);
+  effectToggle.setAttribute('aria-expanded',String(!collapsed));
+  effectToggle.setAttribute('aria-label',(collapsed?'Expand':'Collapse')+' Effect settings');
+  effectToggleIcon.textContent=collapsed?'+':'−';
 }
 
 fullscreenBtn.addEventListener('click',async()=>{
