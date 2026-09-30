@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Saturation - Video Decay</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:20px;min-height:100vh;display:flex;flex-direction:column;align-items:center;gap:20px}
+.header{text-align:center}
+.header h1{font-size:28px;font-weight:300;letter-spacing:2px;margin-bottom:8px}
+.header p{font-size:13px;color:#888;max-width:520px}
+.controls{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;align-items:center;background:#1a1a1a;padding:20px;border-radius:8px;border:1px solid #2a2a2a;width:100%;max-width:900px}
+.control-group{display:flex;gap:8px;align-items:center}
+label{font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:1px;color:#aaa}
+input[type=file],input[type=color],input[type=number],button{font-family:inherit;font-size:12px;padding:10px 16px;border:1px solid #3a3a3a;border-radius:4px;background:#0a0a0a;color:#fff;cursor:pointer;transition:all .2s}
+input[type=number]{width:70px;cursor:text;padding:10px 8px}
+input[type=file]::file-selector-button{background:#2a2a2a;border:none;padding:8px 12px;margin-right:8px;border-radius:3px;color:#fff;cursor:pointer}
+input[type=color]{width:50px;height:40px;padding:2px}
+button{background:#1a1a1a;border:1px solid #ff4444;color:#ff4444;padding:10px 24px}
+button:hover:not(:disabled){background:#ff4444;color:#0a0a0a}
+button:disabled{opacity:.5;cursor:not-allowed}
+.canvas-container{width:100%;max-width:900px;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative;min-height:300px}
+canvas{max-width:100%;height:auto;display:block}
+.placeholder{color:#555;text-align:center;font-size:14px;position:absolute}
+.player-bar{width:100%;max-width:900px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.timeline{display:flex;align-items:center;gap:8px;width:100%}
+.timeline input[type=range]{flex:1;height:4px;-webkit-appearance:none;appearance:none;background:#2a2a2a;border:none;border-radius:2px;outline:none;cursor:pointer;padding:0}
+.timeline input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;background:#ff4444;border-radius:50%;cursor:pointer;transition:background .2s}
+.timeline input[type=range]::-moz-range-thumb{width:12px;height:12px;background:#ff4444;border:none;border-radius:50%;cursor:pointer;transition:background .2s}
+.timeline input[type=range]::-webkit-slider-thumb:hover{background:#ff6666}
+.timeline input[type=range]::-moz-range-thumb:hover{background:#ff6666}
+.time-display{font-size:11px;color:#888;font-family:monospace;min-width:100px;text-align:center}
+.player-controls{display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
+.player-btn{background:0;border:1px solid #3a3a3a;color:#ff4444;padding:8px 12px;cursor:pointer;font-size:12px;border-radius:4px;transition:all .2s}
+.player-btn:hover{border-color:#ff4444;background:#ff4444;color:#0a0a0a}
+.player-btn:disabled{opacity:.3;cursor:not-allowed}
+.info{display:flex;gap:30px;font-size:12px;color:#888;justify-content:center;flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;gap:4px}
+.stat-value{font-size:18px;color:#fff;font-weight:500}
+.stat-label{text-transform:uppercase;letter-spacing:.5px;color:#666}
+.progress-bar{width:100%;max-width:900px;height:6px;background:#1a1a1a;border-radius:3px;overflow:hidden;border:1px solid #2a2a2a}
+.progress-fill{height:100%;background:#ff4444;width:0%}
+.notice{font-size:11px;color:#666;max-width:640px;text-align:center;line-height:1.5}
+input[type=range]::-webkit-slider-runnable-track{background:#2a2a2a;height:4px;border-radius:2px}
+input[type=range]::-moz-range-track{background:#2a2a2a;height:4px;border-radius:2px;border:0}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>PIXEL SATURATION</h1>
+  <p>Importa um vídeo. Cada pixel pode mudar N vezes; na última mudança ele vira a cor escolhida, para sempre.</p>
+</div>
+
+<div class="controls">
+  <input type="file" id="videoInput" accept="video/*">
+  <div class="control-group"><label for="colorInput">Cor 1:</label><input type="color" id="colorInput" value="#ff0000"></div>
+  <div class="control-group"><label for="color2Input">Cor 2:</label><input type="color" id="color2Input" value="#00ff00"><label style="margin-left:8px"><input type="checkbox" id="gradientToggle"> Gradiente temporal</label></div>
+  <div class="control-group"><label style="margin-left:8px"><input type="checkbox" id="curveToggle"> Curva de cor (automática)</label></div>
+  <div class="control-group"><label for="mutationInput">Iterações:</label><input type="number" id="mutationInput" value="50" min="1" max="1000"></div>
+  <div class="control-group"><label for="sensInput">Sensibilidade:</label><input type="number" id="sensInput" value="30" min="0" max="765"></div>
+  <button id="resetBtn" disabled>RESETAR</button>
+</div>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+<div class="canvas-container">
+  <video id="videoElement" style="display:none" crossorigin="anonymous"></video>
+  <canvas id="canvas"></canvas>
+  <div class="placeholder" id="placeholder">Importa um vídeo para começar</div>
+</div>
+
+<div class="player-bar">
+  <div class="timeline">
+    <span class="time-display"><span id="currentTime">00:00</span> / <span id="duration">00:00</span></span>
+    <input type="range" id="seekBar" min="0" max="100" value="0">
+  </div>
+  <div class="player-controls">
+    <button class="player-btn" id="playBtn" disabled>▶ PLAY</button>
+    <button class="player-btn" id="pauseBtn" disabled>⏸ PAUSE</button>
+    <button class="player-btn" id="stopBtn" disabled>⏹ STOP</button>
+    <div style="width:1px;height:20px;background:#2a2a2a"></div>
+    <label for="speedSelect" style="text-transform:uppercase;font-size:11px;color:#888">Velocidade:</label>
+    <select id="speedSelect" style="background:#0a0a0a;border:1px solid #3a3a3a;color:#fff;padding:6px 8px;border-radius:4px;font-size:11px;cursor:pointer" disabled>
+      <option value="0.25">0.25x</option>
+      <option value="0.5">0.5x</option>
+      <option value="1" selected>1x</option>
+      <option value="1.5">1.5x</option>
+      <option value="2">2x</option>
+    </select>
+    <div style="width:1px;height:20px;background:#2a2a2a"></div>
+    <label for="volumeSlider" style="text-transform:uppercase;font-size:11px;color:#888">🔊</label>
+    <input type="range" id="volumeSlider" min="0" max="100" value="100" style="width:100px;height:4px;-webkit-appearance:none;appearance:none;background:#2a2a2a;border:none;border-radius:2px;outline:none;cursor:pointer;padding:0" disabled>
+  </div>
+</div>
+
+<div class="info">
+  <div class="stat"><div class="stat-value" id="frameCount">0</div><div class="stat-label">Frame</div></div>
+  <div class="stat"><div class="stat-value" id="pixelsCount">0</div><div class="stat-label">Pixels saturados</div></div>
+  <div class="stat"><div class="stat-value" id="pctCount">0%</div><div class="stat-label">Do quadro</div></div>
+</div>
+
+<div class="notice">
+  Sensibilidade = o quanto um pixel precisa mudar (soma da diferença R+G+B) para contar como uma mudança.
+  Vídeos comprimidos têm ruído; com 0, quase todo pixel "muda" a todo frame. Se o vermelho avança rápido demais, aumente.
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const videoInput=$('videoInput'), video=$('videoElement'), resetBtn=$('resetBtn');
+const colorInput=$('colorInput'), color2Input=$('color2Input'), gradientToggle=$('gradientToggle'), curveToggle=$('curveToggle');
+const mutationInput=$('mutationInput'), sensInput=$('sensInput');
+const canvas=$('canvas'), ctx=canvas.getContext('2d',{willReadFrequently:true});
+const placeholder=$('placeholder'), progressFill=$('progressFill');
+const playBtn=$('playBtn'), pauseBtn=$('pauseBtn'), stopBtn=$('stopBtn');
+const seekBar=$('seekBar'), speedSelect=$('speedSelect'), volumeSlider=$('volumeSlider');
+const currentTimeEl=$('currentTime'), durationEl=$('duration');
+
+let isRunning=false, pending=false, isUserSeeking=false;
+let counts=null, saturated=null, saturationTime=null, bufA=null, bufB=null, hasPrev=false;
+let saturatedTotal=0, frameCount=0;
+
+function resetState(){
+  const n=canvas.width*canvas.height;
+  counts=new Uint16Array(n);
+  saturated=new Uint8Array(n);
+  pixelColors=new Uint8ClampedArray(n*3); // r,g,b para cada pixel
+  bufA=bufB=null; hasPrev=false;
+  saturatedTotal=0; frameCount=0;
+  updateStats();
+}
+
+function formatTime(s){
+  return String(Math.floor(s/60)).padStart(2,'0')+':'+String(Math.floor(s%60)).padStart(2,'0');
+}
+
+videoInput.addEventListener('change', e=>{
+  const file=e.target.files[0];
+  if(!file) return;
+  isRunning=false;
+  video.volume=1;
+  video.src=URL.createObjectURL(file);
+  video.load();
+  
+  video.onloadedmetadata=()=>{
+    console.log('Vídeo carregado');
+    canvas.width=video.videoWidth;
+    canvas.height=video.videoHeight;
+    placeholder.style.display='none';
+    resetBtn.disabled=false;
+    playBtn.disabled=false;
+    pauseBtn.disabled=false;
+    stopBtn.disabled=false;
+    speedSelect.disabled=false;
+    volumeSlider.disabled=false;
+    durationEl.textContent=formatTime(video.duration);
+    resetState();
+    progressFill.style.width='0%';
+    seekBar.value=0;
+  };
+  
+  video.onerror=(e)=>{
+    console.error('Erro ao carregar vídeo:', e);
+    alert('Erro ao carregar o vídeo.');
+  };
+  
+  video.onended=()=>{
+    isRunning=false;
+    playBtn.textContent='▶ PLAY';
+  };
+  
+  video.ontimeupdate=()=>{
+    if(!isUserSeeking) seekBar.value=(video.currentTime/video.duration)*100;
+    currentTimeEl.textContent=formatTime(video.currentTime);
+  };
+});
+
+playBtn.addEventListener('click', ()=>{
+  if(!video.src) return;
+  isRunning=true;
+  playBtn.textContent='⏸ PLAYING';
+  video.play().then(()=>{
+    console.log('Tocando, volume:', video.volume);
+    schedule();
+  }).catch(e=>console.error('Erro ao tocar:', e));
+});
+
+pauseBtn.addEventListener('click', ()=>{
+  isRunning=false;
+  playBtn.textContent='▶ PLAY';
+  video.pause();
+});
+
+stopBtn.addEventListener('click', ()=>{
+  isRunning=false;
+  playBtn.textContent='▶ PLAY';
+  video.pause();
+  video.currentTime=0;
+  seekBar.value=0;
+  currentTimeEl.textContent='00:00';
+});
+
+resetBtn.addEventListener('click', ()=>{
+  isRunning=false;
+  playBtn.textContent='▶ PLAY';
+  video.pause();
+  video.currentTime=0;
+  seekBar.value=0;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  resetState();
+  progressFill.style.width='0%';
+  currentTimeEl.textContent='00:00';
+});
+
+seekBar.addEventListener('mousedown', ()=>{isUserSeeking=true;});
+seekBar.addEventListener('mouseup', ()=>{isUserSeeking=false;});
+seekBar.addEventListener('input', (e)=>{
+  if(!video.src) return;
+  video.currentTime=(parseFloat(e.target.value)/100)*video.duration;
+});
+
+speedSelect.addEventListener('change', (e)=>{
+  video.playbackRate=parseFloat(e.target.value);
+});
+
+volumeSlider.addEventListener('input', (e)=>{
+  const vol=parseFloat(e.target.value)/100;
+  video.volume=vol;
+  console.log('Volume ajustado para:', vol);
+});
+
+function getColorRGB(){
+  if(curveToggle.checked){
+    // Curva espectral automática: vermelho → amarelo → verde → ciano → azul → magenta → vermelho
+    const duration=video.duration||1;
+    let progress=Math.min(1, video.currentTime/duration);
+    
+    // Curva suave: começa lento, acelera no meio, volta lento no final
+    progress=Math.sin(progress*Math.PI)/2+0.5;
+    
+    // Espectro HSL: matiz varia ao longo do tempo
+    const hue=Math.floor((progress*360)) % 360;
+    const rgb=hslToRgb(hue, 100, 50);
+    return rgb;
+  }
+  
+  if(gradientToggle.checked){
+    const duration=video.duration||1;
+    const progress=Math.min(1, video.currentTime/duration);
+    
+    const h1=colorInput.value;
+    const h2=color2Input.value;
+    
+    const r1=parseInt(h1.slice(1,3),16);
+    const g1=parseInt(h1.slice(3,5),16);
+    const b1=parseInt(h1.slice(5,7),16);
+    
+    const r2=parseInt(h2.slice(1,3),16);
+    const g2=parseInt(h2.slice(3,5),16);
+    const b2=parseInt(h2.slice(5,7),16);
+    
+    const r=Math.round(r1+(r2-r1)*progress);
+    const g=Math.round(g1+(g2-g1)*progress);
+    const b=Math.round(b1+(b2-b1)*progress);
+    
+    return [r,g,b];
+  }
+  
+  const h=colorInput.value;
+  return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+}
+
+function hslToRgb(h,s,l){
+  s/=100; l/=100;
+  const c=(1-Math.abs(2*l-1))*s;
+  const hp=h/60;
+  const x=c*(1-Math.abs(hp%2-1));
+  let r=0,g=0,b=0;
+  
+  if(hp>=0&&hp<1){r=c;g=x;b=0;}
+  else if(hp>=1&&hp<2){r=x;g=c;b=0;}
+  else if(hp>=2&&hp<3){r=0;g=c;b=x;}
+  else if(hp>=3&&hp<4){r=0;g=x;b=c;}
+  else if(hp>=4&&hp<5){r=x;g=0;b=c;}
+  else if(hp>=5&&hp<6){r=c;g=0;b=x;}
+  
+  const m=l-c/2;
+  return [Math.round((r+m)*255),Math.round((g+m)*255),Math.round((b+m)*255)];
+}
+
+function schedule(){
+  if(pending||!isRunning) return;
+  pending=true;
+  const cb=()=>{pending=false; processFrame();};
+  if('requestVideoFrameCallback' in video) video.requestVideoFrameCallback(cb);
+  else requestAnimationFrame(cb);
+}
+
+function processFrame(){
+  if(!isRunning) return;
+  const w=canvas.width, h=canvas.height, n=w*h;
+  ctx.drawImage(video,0,0,w,h);
+  const img=ctx.getImageData(0,0,w,h);
+  const d=img.data;
+
+  if(!bufA){bufA=new Uint8ClampedArray(d.length); bufB=new Uint8ClampedArray(d.length);}
+  bufB.set(d);
+
+  const max=Math.max(1,parseInt(mutationInput.value)||50);
+  const thr=Math.max(0,parseInt(sensInput.value)||0);
+  const [r,g,b]=getColorRGB();
+
+  for(let p=0,i=0;p<n;p++,i+=4){
+    if(!saturated[p] && hasPrev){
+      const diff=Math.abs(bufB[i]-bufA[i])+Math.abs(bufB[i+1]-bufA[i+1])+Math.abs(bufB[i+2]-bufA[i+2]);
+      if(diff>thr){
+        if(++counts[p]>=max){
+          saturated[p]=1;
+          saturatedTotal++;
+          // Armazenar a cor atual do pixel quando satura
+          const ci=p*3;
+          pixelColors[ci]=r;
+          pixelColors[ci+1]=g;
+          pixelColors[ci+2]=b;
+        }
+      }
+    }
+    if(saturated[p]){
+      // Usar a cor armazenada, não a cor atual
+      const ci=p*3;
+      d[i]=pixelColors[ci];
+      d[i+1]=pixelColors[ci+1];
+      d[i+2]=pixelColors[ci+2];
+    }
+  }
+
+  ctx.putImageData(img,0,0);
+  const t=bufA; bufA=bufB; bufB=t; hasPrev=true;
+  frameCount++;
+  updateStats();
+  progressFill.style.width=(video.currentTime/video.duration*100)+'%';
+  if(!video.ended) schedule();
+}
+
+function updateStats(){
+  $('frameCount').textContent=frameCount;
+  $('pixelsCount').textContent=saturatedTotal.toLocaleString();
+  const n=canvas.width*canvas.height||1;
+  $('pctCount').textContent=(saturatedTotal/n*100).toFixed(1)+'%';
+}
+</script>
+</body>
+</html>
