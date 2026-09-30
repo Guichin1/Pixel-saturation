@@ -21,6 +21,9 @@ A exportação requer suporte a `MediaRecorder` e `captureStream()` no canvas. R
 ## Configurações do efeito
 
 - **Changes before lock**: quantidade de mudanças detectadas antes de um pixel ficar permanentemente colorido.
-- **Change sensitivity**: diferença mínima total entre os canais vermelho, verde e azul para contar como mudança.
-- **Temporal gradient**: interpola entre as cores primária e secundária ao longo do vídeo.
-- **Auto color curve**: percorre um espectro de cores ao longo do tempo; tem prioridade sobre o gradiente temporal.
+- **Change sensitivity**: score mínimo para contar uma mudança. O significado do valor depende do método de detecção selecionado.
+- **Change detection**: `RGB sum` soma as diferenças absolutas dos três canais; `RGB distance` mede a distância euclidiana entre as cores; `Luminance` dá mais peso às mudanças percebidas nos canais verde e vermelho. São métricas alternativas, não algoritmos que possam ser ordenados como melhores em todos os vídeos.
+- **Temporal gradient**: interpola entre as cores primária e secundária ao longo do vídeo. A curva pode ser `Linear`, `Logarithmic`, `Exponential`, `Ease in`, `Ease out` ou `Smooth step`.
+- **Auto color curve**: percorre uma paleta de cores ao longo do vídeo e tem prioridade sobre o gradiente temporal. Escolha a paleta (`Spectrum`, `Ember`, `Ocean`, `Sunset`, `Forest` ou `Candy`) e uma curva de progressão. Curva e paleta também funcionam independentemente das cores escolhidas para o gradiente.
+- **Processing load**: `Low` analisa um a cada quatro frames, `Default` um a cada dois e `Ultra` analisa todos os frames recebidos. Modos de menor carga usam menos CPU, mas podem alterar quando os pixels saturam; resultados não são diretamente comparáveis entre perfis. O navegador e o sistema operacional controlam o escalonamento da CPU: uma página não consegue reservar o computador inteiro nem limitar outras abas ou processos. `Ultra` pode deixar esta aba menos responsiva.
+- **Volume**: a última configuração é lembrada neste navegador por meio do armazenamento local.
