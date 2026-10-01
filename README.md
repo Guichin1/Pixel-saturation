@@ -8,6 +8,12 @@ Abra [`index.html`](index.html) em uma versão recente de um navegador para desk
 
 Escolha um vídeo, ajuste as cores e os parâmetros do efeito e pressione **Play** para pré-visualizar. **Reset effect** limpa o estado acumulado dos pixels e volta ao início.
 
+## Diagnóstico em celular pela LAN
+
+Para registrar uma sessão de teste sem publicar o projeto, execute `python lan_logger.py --host 0.0.0.0 --port 8000` neste computador. No celular conectado à mesma rede Wi-Fi, abra `http://IP-DO-COMPUTADOR:8000/`. O endereço IP aparece com `ipconfig` no Windows.
+
+O servidor grava eventos de interface, estado do vídeo, erros e um resumo do processamento a cada cinco segundos em `device-log.jsonl`. Os resumos incluem diferenças de pixels observadas, diferenças acima da sensibilidade, maior contagem acumulada e pixels travados. O vídeo e o nome do arquivo escolhido não são enviados. O log é ignorado pelo Git; compartilhe-o apenas se desejar ajuda para analisar a sessão. Encerre o servidor com `Ctrl+C` no terminal.
+
 ## Formatos de vídeo
 
 O seletor aceita formatos comuns, incluindo MP4, M4V, WebM, Ogg, MOV, MKV e AVI. A extensão, por si só, não garante a reprodução: a decodificação depende dos codecs disponíveis no navegador e no sistema operacional. MP4 com H.264 e WebM com VP8/VP9 têm ampla compatibilidade; o suporte a MOV, MKV, AVI e outros codecs varia conforme o navegador.

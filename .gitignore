@@ -1,1 +1,4 @@
+.env/
+device-log.jsonl
+__pycache__/
 .env

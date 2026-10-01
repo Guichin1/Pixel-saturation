@@ -91,7 +91,7 @@ input[type=range]{height:4px;appearance:none;background:#454b40;border:none;bord
     <div class="control-group tooltip-target" data-tooltip="Choose how pixel changes are scored. Each method has a different sensitivity scale and visual response."><label for="algorithmInput">Change detection</label><select id="algorithmInput"><option value="rgb-sum">RGB sum</option><option value="rgb-distance">RGB distance</option><option value="luminance">Luminance</option></select></div>
     <div class="control-group tooltip-target" data-tooltip="Low analyzes every 4th frame, Default every 2nd, Ultra every frame. Lower loads may change when pixels lock."><label for="resourceInput">Processing load</label><select id="resourceInput"><option value="low">Low · every 4th frame</option><option value="default" selected>Default · every 2nd frame</option><option value="ultra">Ultra · every frame</option></select></div>
     <p class="notice">Processing load controls how many frames this tab analyzes. Your browser and operating system control CPU scheduling; a web page cannot limit other tabs or processes. Ultra may make this tab less responsive.</p>
-    <div class="control-group tooltip-target" data-tooltip="Number of detected changes a pixel must accumulate before its color is locked."><label for="mutationInput">Changes before lock</label><input type="number" id="mutationInput" value="50" min="1" max="1000"></div>
+    <div class="control-group tooltip-target" data-tooltip="Number of detected changes a pixel must accumulate before its color is locked."><label for="mutationInput">Changes before lock</label><input type="number" id="mutationInput" value="10" min="1" max="1000"></div>
     <div class="control-group tooltip-target" data-tooltip="Minimum color-difference score that counts as a change. Increase it to ignore compression noise; its scale depends on Change detection."><label for="sensInput">Change sensitivity</label><input type="number" id="sensInput" value="30" min="0" max="765"></div>
     <button id="resetBtn" class="tooltip-target" data-tooltip="Clear accumulated pixel changes and return the video to the beginning." disabled>Reset effect</button>
     </div>
@@ -137,6 +137,7 @@ const gradientCurveInput=$('gradientCurveInput'), curveShapeInput=$('curveShapeI
 const algorithmInput=$('algorithmInput'), resourceInput=$('resourceInput');
 const mutationInput=$('mutationInput'), sensInput=$('sensInput');
 const canvas=$('canvas'), ctx=canvas.getContext('2d',{willReadFrequently:true});
+const analysisCanvas=document.createElement('canvas'), analysisCtx=analysisCanvas.getContext('2d',{willReadFrequently:true,alpha:false});
 const canvasContainer=$('canvas').parentElement, fullscreenBtn=$('fullscreenBtn');
 const placeholder=$('placeholder'), progressFill=$('progressFill');
 const playBtn=$('playBtn'), pauseBtn=$('pauseBtn'), stopBtn=$('stopBtn');
@@ -154,6 +155,10 @@ let videoFrameSequence=0;
 let isExporting=false;
 let audioContext=null, audioSource=null, exportAudioDestination=null;
 let currentVideoObjectUrl=null;
+let currentVideoSourceType='unknown';
+let logBuffer=[], logFlushTimer=0, loggerUnavailable=false;
+let lastDiagnosticsAt=0;
+let diagnosticsWindow=createDiagnosticsWindow();
 
 const volumeStorageKey='pixel-saturation-volume';
 const colorPalettes={
@@ -164,6 +169,103 @@ const colorPalettes={
   forest:['#102820','#245c3a','#5c8d43','#a9b86a','#e2d6a2'],
   candy:['#ff4d8d','#ff9fce','#f3e8ff','#8b7bff','#38c9c3']
 };
+
+const logSessionId=crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2);
+const logDeviceInfo={
+  userAgent:navigator.userAgent,
+  platform:navigator.userAgentData?.platform||navigator.platform||'unknown',
+  viewport:{width:innerWidth,height:innerHeight,devicePixelRatio},
+  screen:{width:screen.width,height:screen.height},
+  hardwareConcurrency:navigator.hardwareConcurrency||null,
+  deviceMemory:navigator.deviceMemory||null,
+  maxTouchPoints:navigator.maxTouchPoints||0,
+  requestVideoFrameCallback:'requestVideoFrameCallback' in HTMLVideoElement.prototype,
+  secureContext:isSecureContext
+};
+
+function createDiagnosticsWindow(){
+  return {
+    analyzedFrames:0, comparedFrames:0, rawChangedPixels:0, aboveSensitivityPixels:0,
+    maxRawChangedPixelsInFrame:0, maxAboveSensitivityPixelsInFrame:0,
+    maxObservedDifference:0, maxAccumulatedChanges:0, newlyLocked:0
+  };
+}
+
+function logEvent(event,details={}){
+  if(loggerUnavailable) return;
+  logBuffer.push({event,eventAt:new Date().toISOString(),details});
+  if(!logFlushTimer) logFlushTimer=setTimeout(flushLogEvents,250);
+}
+
+function flushLogEvents(useBeacon=false){
+  if(logFlushTimer){clearTimeout(logFlushTimer);logFlushTimer=0;}
+  if(loggerUnavailable||!logBuffer.length) return;
+  const events=logBuffer.splice(0);
+  const body=JSON.stringify({sessionId:logSessionId,device:logDeviceInfo,events});
+  if(useBeacon&&navigator.sendBeacon){
+    if(!navigator.sendBeacon('/log',new Blob([body],{type:'application/json'}))) logBuffer.unshift(...events);
+    return;
+  }
+  fetch('/log',{method:'POST',headers:{'Content-Type':'application/json'},body,keepalive:true})
+    .then(response=>{if(!response.ok) throw new Error('HTTP '+response.status);})
+    .catch(error=>{
+      loggerUnavailable=true;
+      console.warn('LAN diagnostic logger unavailable; playback continues without logging.',error);
+    });
+}
+
+function reportProcessingSnapshot(reason){
+  if(!canvas.width) return;
+  const windowStats=diagnosticsWindow;
+  const comparedFrames=windowStats.comparedFrames;
+  const pixels=canvas.width*canvas.height;
+  logEvent('processing-snapshot',{
+    reason,currentTime:Number(video.currentTime.toFixed(2)),readyState:video.readyState,
+    networkState:video.networkState,paused:video.paused,videoEnded:video.ended,
+    videoWidth:video.videoWidth,videoHeight:video.videoHeight,
+    frameCount,videoFrameSequence,pixelsLocked:saturatedTotal,
+    coveragePercent:Number((saturatedTotal/pixels*100).toFixed(4)),
+    sensitivity:Number(sensInput.value),changesBeforeLock:Number(mutationInput.value),
+    processingLoad:resourceInput.value,processingStride:getProcessingStride(),hasPreviousFrame:hasPrev,
+    analyzedFrames:windowStats.analyzedFrames,comparedFrames,
+    averageRawChangedPixelsPerFrame:comparedFrames?Number((windowStats.rawChangedPixels/comparedFrames).toFixed(2)):0,
+    averageAboveSensitivityPixelsPerFrame:comparedFrames?Number((windowStats.aboveSensitivityPixels/comparedFrames).toFixed(2)):0,
+    maxRawChangedPixelsInFrame:windowStats.maxRawChangedPixelsInFrame,
+    maxAboveSensitivityPixelsInFrame:windowStats.maxAboveSensitivityPixelsInFrame,
+    maxObservedDifference:windowStats.maxObservedDifference,
+    maxAccumulatedChanges:windowStats.maxAccumulatedChanges,
+    newlyLocked:windowStats.newlyLocked
+  });
+  diagnosticsWindow=createDiagnosticsWindow();
+  lastDiagnosticsAt=performance.now();
+}
+
+logEvent('session-start',{url:location.pathname});
+document.addEventListener('click',event=>{
+  const target=event.target.closest('button,label.file-picker');
+  if(target) logEvent('ui-click',{target:target.id||target.htmlFor||target.tagName.toLowerCase()});
+});
+document.addEventListener('change',event=>{
+  const target=event.target;
+  if(!(target instanceof HTMLInputElement)&&!(target instanceof HTMLSelectElement)) return;
+  const value=target.type==='file'?{fileSelected:!!target.files?.length}:
+    target.type==='checkbox'?target.checked:target.value;
+  logEvent('control-change',{target:target.id||target.name||target.tagName.toLowerCase(),value});
+});
+document.addEventListener('visibilitychange',()=>{
+  logEvent('visibility-change',{visibilityState:document.visibilityState});
+  if(document.visibilityState==='hidden') reportProcessingSnapshot('hidden');
+});
+window.addEventListener('pagehide',()=>{
+  reportProcessingSnapshot('pagehide');
+  logEvent('pagehide');
+  flushLogEvents(true);
+});
+window.addEventListener('error',event=>logEvent('window-error',{message:event.message,line:event.lineno}));
+window.addEventListener('unhandledrejection',event=>logEvent('unhandled-rejection',{message:String(event.reason)}));
+['playing','waiting','stalled','ended'].forEach(type=>video.addEventListener(type,()=>{
+  logEvent('video-'+type,{currentTime:Number(video.currentTime.toFixed(2)),readyState:video.readyState,networkState:video.networkState});
+}));
 
 function loadSavedVolume(){
   try{
@@ -189,6 +291,8 @@ function resetState(){
   bufA=bufB=null; hasPrev=false;
   videoFrameSequence=0;
   saturatedTotal=0; frameCount=0;
+  diagnosticsWindow=createDiagnosticsWindow();
+  lastDiagnosticsAt=performance.now();
   updateStats();
 }
 
@@ -211,6 +315,8 @@ sampleBtn.addEventListener('click',()=>{
 
 function loadVideoSource(source,name,isObjectUrl){
   isRunning=false;
+  currentVideoSourceType=isObjectUrl?'local-file':'sample';
+  logEvent('video-load-request',{sourceType:currentVideoSourceType});
   video.pause();
   if(currentVideoObjectUrl) URL.revokeObjectURL(currentVideoObjectUrl);
   currentVideoObjectUrl=isObjectUrl?source:null;
@@ -218,8 +324,11 @@ function loadVideoSource(source,name,isObjectUrl){
   video.src=source;
 
   video.onloadedmetadata=()=>{
+    logEvent('video-metadata',{sourceType:currentVideoSourceType,width:video.videoWidth,height:video.videoHeight,duration:Number(video.duration.toFixed(2)),readyState:video.readyState});
     canvas.width=video.videoWidth;
     canvas.height=video.videoHeight;
+    analysisCanvas.width=video.videoWidth;
+    analysisCanvas.height=video.videoHeight;
     exportCanvas.width=video.videoWidth;
     exportCanvas.height=video.videoHeight;
     placeholder.style.display='none';
@@ -242,12 +351,14 @@ function loadVideoSource(source,name,isObjectUrl){
   };
   
   video.onerror=(e)=>{
+    logEvent('video-error',{sourceType:currentVideoSourceType,errorCode:video.error?.code||null,networkState:video.networkState,readyState:video.readyState});
     console.error('Failed to load video:', e);
     exportStatus.textContent='This video could not be loaded or decoded. For the bundled sample, open the site over HTTP or GitHub Pages.';
     sampleBtn.disabled=false;
   };
   
   video.onended=()=>{
+    reportProcessingSnapshot('ended');
     isRunning=false;
     setEffectPanelCollapsed(false);
     playBtn.textContent='Play';
@@ -265,12 +376,14 @@ function loadVideoSource(source,name,isObjectUrl){
 
 playBtn.addEventListener('click', ()=>{
   if(!video.src) return;
+  logEvent('play-request',{currentTime:Number(video.currentTime.toFixed(2))});
   setEffectPanelCollapsed(true);
   isRunning=true;
   playBtn.textContent='Playing';
   video.play().then(()=>{
+    logEvent('play-started',{currentTime:Number(video.currentTime.toFixed(2))});
     schedule();
-  }).catch(e=>{isRunning=false;setEffectPanelCollapsed(false);playBtn.textContent='Play';exportStatus.textContent='Playback could not start.';});
+  }).catch(e=>{logEvent('play-rejected',{name:e.name,message:e.message});isRunning=false;setEffectPanelCollapsed(false);playBtn.textContent='Play';exportStatus.textContent='Playback could not start.';});
 });
 
 pauseBtn.addEventListener('click', ()=>{
@@ -278,6 +391,7 @@ pauseBtn.addEventListener('click', ()=>{
   setEffectPanelCollapsed(false);
   playBtn.textContent='Play';
   video.pause();
+  reportProcessingSnapshot('pause');
 });
 
 stopBtn.addEventListener('click', ()=>{
@@ -285,12 +399,14 @@ stopBtn.addEventListener('click', ()=>{
   setEffectPanelCollapsed(false);
   playBtn.textContent='Play';
   video.pause();
+  reportProcessingSnapshot('stop');
   video.currentTime=0;
   seekBar.value=0;
   currentTimeEl.textContent='00:00';
 });
 
 resetBtn.addEventListener('click', ()=>{
+  reportProcessingSnapshot('reset');
   isRunning=false;
   playBtn.textContent='Play';
   video.pause();
@@ -596,30 +712,39 @@ function processFrame(){
     return;
   }
   const w=canvas.width, h=canvas.height, n=w*h;
-  ctx.drawImage(video,0,0,w,h);
-  const img=ctx.getImageData(0,0,w,h);
+  analysisCtx.drawImage(video,0,0,w,h);
+  const img=analysisCtx.getImageData(0,0,w,h);
   const d=img.data;
 
   if(!bufA){bufA=new Uint8ClampedArray(d.length); bufB=new Uint8ClampedArray(d.length);}
   bufB.set(d);
 
-  const max=Math.max(1,parseInt(mutationInput.value)||50);
+  const max=Math.max(1,parseInt(mutationInput.value)||10);
   const thr=Math.max(0,parseInt(sensInput.value)||0);
   const [r,g,b]=getColorRGB();
+  const comparedPreviousFrame=hasPrev;
+  let rawChangedPixels=0, aboveSensitivityPixels=0, maxObservedDifference=0, maxAccumulatedChanges=0, newlyLocked=0;
 
   for(let p=0,i=0;p<n;p++,i+=4){
-    if(!saturated[p] && hasPrev){
-      const diff=getPixelDifference(bufB[i]-bufA[i],bufB[i+1]-bufA[i+1],bufB[i+2]-bufA[i+2]);
-      if(diff>thr){
-        if(++counts[p]>=max){
-          saturated[p]=1;
-          saturatedTotal++;
-          const ci=p*3;
-          pixelColors[ci]=r;
-          pixelColors[ci+1]=g;
-          pixelColors[ci+2]=b;
+    if(!saturated[p]){
+      if(hasPrev){
+        const diff=getPixelDifference(bufB[i]-bufA[i],bufB[i+1]-bufA[i+1],bufB[i+2]-bufA[i+2]);
+        if(diff>0) rawChangedPixels++;
+        if(diff>maxObservedDifference) maxObservedDifference=diff;
+        if(diff>thr){
+          aboveSensitivityPixels++;
+          if(++counts[p]>=max){
+            saturated[p]=1;
+            saturatedTotal++;
+            newlyLocked++;
+            const ci=p*3;
+            pixelColors[ci]=r;
+            pixelColors[ci+1]=g;
+            pixelColors[ci+2]=b;
+          }
         }
       }
+      if(counts[p]>maxAccumulatedChanges) maxAccumulatedChanges=counts[p];
     }
     if(saturated[p]){
       const ci=p*3;
@@ -635,15 +760,26 @@ function processFrame(){
   ctx.putImageData(img,0,0);
   const t=bufA; bufA=bufB; bufB=t; hasPrev=true;
   frameCount++;
+  diagnosticsWindow.analyzedFrames++;
+  if(comparedPreviousFrame) diagnosticsWindow.comparedFrames++;
+  diagnosticsWindow.rawChangedPixels+=rawChangedPixels;
+  diagnosticsWindow.aboveSensitivityPixels+=aboveSensitivityPixels;
+  diagnosticsWindow.maxRawChangedPixelsInFrame=Math.max(diagnosticsWindow.maxRawChangedPixelsInFrame,rawChangedPixels);
+  diagnosticsWindow.maxAboveSensitivityPixelsInFrame=Math.max(diagnosticsWindow.maxAboveSensitivityPixelsInFrame,aboveSensitivityPixels);
+  diagnosticsWindow.maxObservedDifference=Math.max(diagnosticsWindow.maxObservedDifference,maxObservedDifference);
+  diagnosticsWindow.maxAccumulatedChanges=Math.max(diagnosticsWindow.maxAccumulatedChanges,maxAccumulatedChanges);
+  diagnosticsWindow.newlyLocked+=newlyLocked;
   updateStats();
   progressFill.style.width=(video.currentTime/video.duration*100)+'%';
+  if(performance.now()-lastDiagnosticsAt>=5000) reportProcessingSnapshot('interval');
 }
 
 function updateStats(){
   $('frameCount').textContent=frameCount;
   $('pixelsCount').textContent=saturatedTotal.toLocaleString();
   const n=canvas.width*canvas.height||1;
-  $('pctCount').textContent=(saturatedTotal/n*100).toFixed(1)+'%';
+  const coverage=saturatedTotal/n*100;
+  $('pctCount').textContent=(coverage<1?coverage.toFixed(3):coverage.toFixed(1))+'%';
 }
 </script>
 </body>
