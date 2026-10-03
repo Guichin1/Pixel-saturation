@@ -97,7 +97,7 @@ input[type=range]{height:4px;appearance:none;background:#454b40;border:none;bord
     <details class="setting-section" open>
       <summary>Color mapping</summary>
       <div class="setting-section-body">
-        <div class="control-group"><span class="section-title">Lock color</span><div class="color-row tooltip-target" data-tooltip="Color used when a pixel reaches its change limit, or the starting gradient color."><input type="color" id="colorInput" value="#ff654f" aria-label="First lock color"><label for="colorInput">Primary</label></div><div class="color-row tooltip-target" data-tooltip="Ending color used by Temporal gradient."><input type="color" id="color2Input" value="#d2f36b" aria-label="Second lock color"><label for="color2Input">Secondary</label></div><div class="inline-controls"><label class="tooltip-target" data-tooltip="Assign a new random color to each pixel when it locks. This overrides the selected color and gradients."><input type="checkbox" id="randomColorToggle"> Random on lock</label></div></div>
+        <div class="control-group"><span class="section-title">Lock color</span><div class="color-row tooltip-target" data-tooltip="Color used when a pixel reaches its change limit, or the starting gradient color."><input type="color" id="colorInput" value="#ff654f" aria-label="First lock color"><label for="colorInput">Primary</label></div><div class="color-row tooltip-target" data-tooltip="Ending color used by Temporal gradient."><input type="color" id="color2Input" value="#d2f36b" aria-label="Second lock color"><label for="color2Input">Secondary</label></div><div class="inline-controls"><label class="tooltip-target" data-tooltip="Assign a new random color to each pixel when it locks. Cannot be active together with Source pixel color."><input type="checkbox" id="randomColorToggle"> Random on lock</label></div><div class="inline-controls"><label class="tooltip-target" data-tooltip="Keep each pixel's original video color from the frame where it reaches the lock limit. Cannot be active together with Random on lock."><input type="checkbox" id="sourcePixelColorToggle"> Source pixel color</label></div></div>
         <div class="inline-controls"><label class="tooltip-target" data-tooltip="Blend the primary and secondary lock colors over the video's duration."><input type="checkbox" id="gradientToggle"> Temporal gradient</label></div>
         <div class="control-group tooltip-target" data-tooltip="Shape the gradient's progress over time: logarithmic starts quickly; exponential starts slowly; easing and smooth step soften transitions."><label for="gradientCurveInput">Gradient curve</label><select id="gradientCurveInput"><option value="linear">Linear</option><option value="logarithmic">Logarithmic</option><option value="exponential">Exponential</option><option value="ease-in">Ease in</option><option value="ease-out">Ease out</option><option value="smoothstep">Smooth step</option></select></div>
         <div class="inline-controls"><label class="tooltip-target" data-tooltip="Use the selected color palette across the video. This takes priority over Temporal gradient."><input type="checkbox" id="curveToggle"> Auto color curve</label></div>
@@ -166,7 +166,7 @@ const gradientCurveInput=$('gradientCurveInput'), curveShapeInput=$('curveShapeI
 const algorithmInput=$('algorithmInput'), resourceInput=$('resourceInput');
 const mutationModeInput=$('mutationModeInput'), mutationInput=$('mutationInput'), mutationFormulaInput=$('mutationFormulaInput');
 const fixedMutationControl=$('fixedMutationControl'), formulaMutationControl=$('formulaMutationControl');
-const randomColorToggle=$('randomColorToggle'), sensInput=$('sensInput');
+const randomColorToggle=$('randomColorToggle'), sourcePixelColorToggle=$('sourcePixelColorToggle'), sensInput=$('sensInput');
 const canvas=$('canvas'), ctx=canvas.getContext('2d',{willReadFrequently:true});
 const analysisCanvas=document.createElement('canvas'), analysisCtx=analysisCanvas.getContext('2d',{willReadFrequently:true,alpha:false});
 const canvasContainer=$('canvas').parentElement, fullscreenBtn=$('fullscreenBtn');
@@ -521,6 +521,12 @@ document.addEventListener('fullscreenchange',()=>{
 gradientToggle.addEventListener('change',refreshCurveControls);
 curveToggle.addEventListener('change',refreshCurveControls);
 mutationModeInput.addEventListener('change',refreshMutationControls);
+randomColorToggle.addEventListener('change',()=>{
+  if(randomColorToggle.checked) sourcePixelColorToggle.checked=false;
+});
+sourcePixelColorToggle.addEventListener('change',()=>{
+  if(sourcePixelColorToggle.checked) randomColorToggle.checked=false;
+});
 
 function refreshCurveControls(){
   gradientCurveInput.disabled=!gradientToggle.checked;
@@ -810,7 +816,8 @@ function processFrame(){
             saturatedTotal++;
             newlyLocked++;
             const ci=p*3;
-            const [r,g,b]=randomColorToggle.checked?getRandomColorRGB():baseColor;
+            const [r,g,b]=sourcePixelColorToggle.checked?[d[i],d[i+1],d[i+2]]:
+              randomColorToggle.checked?getRandomColorRGB():baseColor;
             pixelColors[ci]=r;
             pixelColors[ci+1]=g;
             pixelColors[ci+2]=b;

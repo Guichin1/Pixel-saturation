@@ -32,6 +32,7 @@ A exportação requer suporte a `MediaRecorder` e `captureStream()` no canvas. R
 
 - **Changes before lock**: quantidade de mudanças detectadas antes de um pixel ficar permanentemente colorido. O modo `Formula · video frame total` calcula o limite como `ceil(duração × FPS estimado × percentual / 100)`. O FPS é estimado pelas callbacks dos frames durante a reprodução, começando em 30 até haver uma amostra; por isso, o resultado é uma estimativa, não a contagem exata de frames do arquivo.
 - **Random on lock**: atribui uma cor aleatória independente a cada pixel no instante em que ele trava. Essa opção substitui a cor escolhida, o gradiente temporal e a curva automática.
+- **Source pixel color**: trava o pixel com a cor original do vídeo no frame em que ele alcança o limite. É uma opção exclusiva de `Random on lock`.
 - **Change sensitivity**: score mínimo para contar uma mudança. O significado do valor depende do método de detecção selecionado.
 - **Change detection**: `RGB sum` soma as diferenças absolutas dos três canais; `RGB distance` mede a distância euclidiana entre as cores; `Luminance` dá mais peso às mudanças percebidas nos canais verde e vermelho. São métricas alternativas, não algoritmos que possam ser ordenados como melhores em todos os vídeos.
 - **Temporal gradient**: interpola entre as cores primária e secundária ao longo do vídeo. A curva pode ser `Linear`, `Logarithmic`, `Exponential`, `Ease in`, `Ease out` ou `Smooth step`.
